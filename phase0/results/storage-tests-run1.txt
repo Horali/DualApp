@@ -1,0 +1,65 @@
+id: uid=10057(u0_a57) gid=10057(u0_a57) groups=10057(u0_a57),1004(input),1007(log),1011(adb),1015(sdcard_rw),1028(sdcard_r),1078(ext_data_rw),1079(ext_obb_rw),3001(net_bt_admin),3002(net_bt),3003(inet),3006(net_bw_stats),3009(readproc),3011(uhid),3012(readtracefs),50057(all_a57) context=u:r:runas_app:s0:c57,c256,c512,c768
+
+== setup: 64 MiB blob 7d1e6a2a8985b8b5, mode 444, pool dir 555
+
+== T1 read through symlink
+U0 read hash matches                         PASS
+U1 read hash matches                         PASS
+
+== T2 write to 0444 blob through symlink
+append via U0 link                           DENIED
+truncate via U0 link                         
+pool still intact                            YES
+
+== T3 the 0444 assumption under a shared UID
+chmod u+w on blob via U0 link                ALLOWED
+blob mode now                                777
+append via U0 link after chmod               ALLOWED
+U1 sees changed content                      YES (cross-instance corruption)
+restored hash ok                             YES
+
+== T4 delete
+rm U0 symlink (own dir)                      ALLOWED
+pool blob still there                        YES
+rm blob in 0555 pool dir                     DENIED
+chmod pool dir u+w                           ALLOWED
+rm blob after chmod (dry: mv)                ALLOWED
+
+== T5 rename
+rename U0 symlink                            ALLOWED
+link still resolves                          YES
+
+== T6 kernel-level protections
+hard link blob into U0 dir                   DENIED
+chattr +i (immutable)                        DENIED
+fsverity enable                              DENIED
+fs-verity measure                            ERROR: FS_IOC_MEASURE_VERITY failed on '
+
+== T7 copy-up (what an engine CoW hook would do)
+kernel does CoW on open(O_WRONLY)?           NO (T2/T3: write is denied or hits the shared blob)
+copy-up of 64 MiB (ms)                       109
+U0 now private file                          YES
+U0 modified, pool intact                     YES
+U1 still sees original                       YES
+
+== T8 concurrency: 4 readers while U0 copies up
+reader hashes all equal ref                  YES
+reads completed                              12
+
+== T9 crash during copy-up (kill -9 mid-copy)
+target still the symlink                     YES
+leftover partial tmp                         YES (49545216 bytes, needs journal cleanup)
+U0 still reads original                      YES
+
+== T10 integrity scrub (index vs pool)
+blob 7d1e6a2a8985b8b5                        OK
+
+== L1 storage (bytes on disk)
+pool blob                                    65604 KiB
+U0 link                                      0 KiB
+U1 link                                      0 KiB
+2 instances shared                           65604 KiB
+2 instances private copies                   131208 KiB
+
+== cleanup
+removed                                      YES
