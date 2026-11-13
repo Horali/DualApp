@@ -1,0 +1,47 @@
+diff --git a/Bcore/src/main/aidl/android/app/IBinderSession.aidl b/Bcore/src/main/aidl/android/app/IBinderSession.aidl
+new file mode 100644
+index 0000000..6f5cde8
+--- /dev/null
++++ b/Bcore/src/main/aidl/android/app/IBinderSession.aidl
+@@ -0,0 +1,8 @@
++// DualApp Phase 0 patch: compile-time placeholder for the hidden
++// android.app.IBinderSession added in Android 17 (API 37). At runtime the
++// framework's own class is loaded first, so this copy is never used.
++package android.app;
++
++/** @hide */
++interface IBinderSession {
++}
+diff --git a/Bcore/src/main/java/top/niunaijun/blackbox/fake/delegate/ServiceConnectionDelegate.java b/Bcore/src/main/java/top/niunaijun/blackbox/fake/delegate/ServiceConnectionDelegate.java
+index 3da6bdb..ef2de3e 100644
+--- a/Bcore/src/main/java/top/niunaijun/blackbox/fake/delegate/ServiceConnectionDelegate.java
++++ b/Bcore/src/main/java/top/niunaijun/blackbox/fake/delegate/ServiceConnectionDelegate.java
+@@ -60,4 +60,28 @@ public class ServiceConnectionDelegate extends IServiceConnection.Stub {
+             mConn.connected(name, service);
+         }
+     }
++
++    /**
++     * DualApp Phase 0 patch: Android 17 (API 37) added an IBinderSession
++     * argument to IServiceConnection.connected(). Without this overload the
++     * framework Stub throws AbstractMethodError and any guest that binds a
++     * service crashes. Forward the call to the real connection unchanged.
++     */
++    public void connected(ComponentName name, IBinder service, android.app.IBinderSession session, boolean dead) throws RemoteException {
++        try {
++            for (java.lang.reflect.Method m : mConn.getClass().getMethods()) {
++                if (m.getName().equals("connected") && m.getParameterTypes().length == 4) {
++                    m.invoke(mConn, mComponentName, service, session, dead);
++                    return;
++                }
++            }
++        } catch (java.lang.reflect.InvocationTargetException e) {
++            Throwable cause = e.getCause();
++            if (cause instanceof RemoteException) throw (RemoteException) cause;
++            throw new RuntimeException(cause);
++        } catch (IllegalAccessException e) {
++            throw new RuntimeException(e);
++        }
++        connected(name, service, dead);
++    }
+ }
