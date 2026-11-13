@@ -1,0 +1,200 @@
+11-13 14:44:10.053 15285 15384 W ApplicationInfo: Large ApplicationInfo parcel: size=17688 package=com.mobile.legends splits=13 sharedLibs=1 resDirs=1 overlayPaths=1
+11-13 14:44:10.053 15285 15384 W ApplicationInfo: Large ApplicationInfo parcel: size=17688 package=com.mobile.legends splits=13 sharedLibs=1 resDirs=1 overlayPaths=1
+11-13 14:44:10.054 15285 15297 W ApplicationInfo: Large ApplicationInfo parcel: size=17688 package=com.mobile.legends splits=13 sharedLibs=1 resDirs=1 overlayPaths=1
+11-13 14:44:10.061 15285 15297 W ApplicationInfo: Large ApplicationInfo parcel: size=17688 package=com.mobile.legends splits=13 sharedLibs=1 resDirs=1 overlayPaths=1
+11-13 14:44:10.062 15285 15297 W ApplicationInfo: Large ApplicationInfo parcel: size=17688 package=com.mobile.legends splits=13 sharedLibs=1 resDirs=1 overlayPaths=1
+11-13 14:44:10.063 15285 15384 W ApplicationInfo: Large ApplicationInfo parcel: size=17688 package=com.mobile.legends splits=13 sharedLibs=1 resDirs=1 overlayPaths=1
+11-13 14:44:10.064 15285 15297 W ApplicationInfo: Large ApplicationInfo parcel: size=17688 package=com.mobile.legends splits=13 sharedLibs=1 resDirs=1 overlayPaths=1
+11-13 14:44:10.065 15285 15384 W ApplicationInfo: Large ApplicationInfo parcel: size=17688 package=com.mobile.legends splits=13 sharedLibs=1 resDirs=1 overlayPaths=1
+11-13 14:44:10.070 15285 15384 W ApplicationInfo: Large ApplicationInfo parcel: size=17688 package=com.mobile.legends splits=13 sharedLibs=1 resDirs=1 overlayPaths=1
+11-13 14:44:10.071 15285 15384 W ApplicationInfo: Large ApplicationInfo parcel: size=17688 package=com.mobile.legends splits=13 sharedLibs=1 resDirs=1 overlayPaths=1
+11-13 14:44:10.072 15285 15384 W ApplicationInfo: Large ApplicationInfo parcel: size=17688 package=com.mobile.legends splits=13 sharedLibs=1 resDirs=1 overlayPaths=1
+11-13 14:44:13.032 15285 15384 W ApplicationInfo: Large ApplicationInfo parcel: size=17688 package=com.mobile.legends splits=13 sharedLibs=1 resDirs=1 overlayPaths=1
+11-13 14:44:13.034 15285 15297 W ApplicationInfo: Large ApplicationInfo parcel: size=17688 package=com.mobile.legends splits=13 sharedLibs=1 resDirs=1 overlayPaths=1
+11-13 14:44:13.036 15285 15297 W ApplicationInfo: Large ApplicationInfo parcel: size=17688 package=com.mobile.legends splits=13 sharedLibs=1 resDirs=1 overlayPaths=1
+11-13 14:44:13.037 15285 15297 W ApplicationInfo: Large ApplicationInfo parcel: size=17688 package=com.mobile.legends splits=13 sharedLibs=1 resDirs=1 overlayPaths=1
+11-13 14:44:13.039 15285 15297 W ApplicationInfo: Large ApplicationInfo parcel: size=17688 package=com.mobile.legends splits=13 sharedLibs=1 resDirs=1 overlayPaths=1
+11-13 14:44:13.048 15996 16028 W GooglePlayServicesUtil: com.mobile.legends requires Google Play services, but they are missing.
+11-13 14:44:13.088 15996 16063 W GooglePlayServicesUtil: com.mobile.legends requires Google Play services, but they are missing.
+11-13 14:44:13.152 15996 16063 W Unity   : [LoadResModule_TranssionPackage]On RecvClientInfo 
+11-13 14:44:13.152 15996 16063 W Unity   : (Filename: ./Runtime/Export/Debug/Debug.bindings.h Line: 39)
+11-13 14:44:13.152 15996 16063 W Unity   : 
+11-13 14:44:13.152 15996 16063 W Unity   : [LoadResModule_TranssionPackage]CheckRewardQualify 
+11-13 14:44:13.152 15996 16063 W Unity   : (Filename: ./Runtime/Export/Debug/Debug.bindings.h Line: 39)
+11-13 14:44:13.152 15996 16063 W Unity   : 
+11-13 14:44:13.152 15996 16063 W Unity   : [LoadResModule_TranssionPackage]CheckRewardQualify ClientInfoMgr.TranssionKeyData.TranssionKey =  
+11-13 14:44:13.152 15996 16063 W Unity   : (Filename: ./Runtime/Export/Debug/Debug.bindings.h Line: 39)
+11-13 14:44:13.152 15996 16063 W Unity   : 
+11-13 14:44:13.152 15996 16063 W Unity   : [LoadResModule_TranssionPackage]CheckRewardQualify ClientInfoMgr.TranssionKeyData.RewardType = 0 
+11-13 14:44:13.152 15996 16063 W Unity   : (Filename: ./Runtime/Export/Debug/Debug.bindings.h Line: 39)
+11-13 14:44:13.152 15996 16063 W Unity   : 
+11-13 14:44:13.152 15996 16063 W Unity   : [LoadResModule_TranssionPackage]CheckRewardQualify ClientInfoMgr.TranssionKeyData.SendCount = 0 
+11-13 14:44:13.152 15996 16063 W Unity   : (Filename: ./Runtime/Export/Debug/Debug.bindings.h Line: 39)
+11-13 14:44:13.152 15996 16063 W Unity   : 
+11-13 14:44:13.161 15996 16063 I Unity   : ALog2019-2.01.0056.08-FixLabelUVErrorStuffer: fix label uv error, p1=True, p2=False, p3=False, p4=True, p5=False, p6=True
+11-13 14:44:13.318 15996 16063 W Unity   : [NextMapModule] 4080 bDownload = False 
+11-13 14:44:13.318 15996 16063 W Unity   : (Filename: ./Runtime/Export/Debug/Debug.bindings.h Line: 39)
+11-13 14:44:13.318 15996 16063 W Unity   : 
+11-13 14:44:13.334 15996 16063 W Unity   : [NextMapModule] _SyncInfoToServerMainThread request.bNext2025Ready = False 
+11-13 14:44:13.334 15996 16063 W Unity   : (Filename: ./Runtime/Export/Debug/Debug.bindings.h Line: 39)
+11-13 14:44:13.334 15996 16063 W Unity   : 
+11-13 14:44:13.334 15996 16063 W Unity   : [NextMapModule] _SyncInfoToServerMainThread bNext2026Ready = False 
+11-13 14:44:13.334 15996 16063 W Unity   : (Filename: ./Runtime/Export/Debug/Debug.bindings.h Line: 39)
+11-13 14:44:13.334 15996 16063 W Unity   : 
+11-13 14:44:13.399 15996 16063 I Unity   : ALog2019-2.01.0056.08-eLogSupport-jeanchen-[AddMainCityHero]bOpen:True
+11-13 14:44:13.492 15996 16063 W Unity   : [IsLoadResMgrVersionOK] suffixOk = True , versionOk = True,respath:/storage/emulated/0/Android/data/top.niunaijun.blackbox/files/blackbox/storage/emulated/0/Android/data/com.mobile.legends/files/dragon2017/assets/Document/android/LoadResLargeFileOffset_high_astc.unity3d 
+11-13 14:44:13.492 15996 16063 W Unity   : (Filename: ./Runtime/Export/Debug/Debug.bindings.h Line: 39)
+11-13 14:44:13.492 15996 16063 W Unity   : 
+11-13 14:44:13.513 15996 16063 W Unity   : [LoadResModule] 读取结束，目前偏移量是：298192 
+11-13 14:44:13.513 15996 16063 W Unity   : (Filename: ./Runtime/Export/Debug/Debug.bindings.h Line: 39)
+11-13 14:44:13.513 15996 16063 W Unity   : 
+11-13 14:44:13.535 15996 16063 I Unity   : ShaverVariants_add unload false
+11-13 14:44:13.668 15996 16329 W Unity   : [StrategyZero] _strategyZeroModuleStr = 611;620;569;596;1000;616;619;612;598;10001;10002;10003;10004;10005;10006;10008;10009;3001;555;564;572;573;584;592;605;91; 
+11-13 14:44:13.668 15996 16329 W Unity   : (Filename: ./Runtime/Export/Debug/Debug.bindings.h Line: 39)
+11-13 14:44:13.668 15996 16329 W Unity   : 
+11-13 14:44:13.857  1098  1098 D io_stats: !@ Read_top(KB): ds:UnityKillsMe:top(15996) 24076 emservice:normal(1741) 1668 oid.apps.photos:low(25801) 572
+11-13 14:44:13.857  1098  1098 D io_stats: !@ Write_top(KB): oid.apps.photos:low(25801) 168 ds:UnityKillsMe:top(15996) 156 martsuggestions:high(6879) 120
+11-13 14:44:16.866  5664  5664 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:du -sk /storage/emulated/0/Android/data/top.niunaijun.blackbox/files/blackbox/storage/emulated/0/Android/data/com.mobile.legends 2>/dev/null'
+11-13 14:44:17.139 15516 15530 W jun.blackbox:p0: Couldn't lock the profile file /data/misc/profiles/cur/0/dev.dualapp.canary/primary.prof: Failed to open file '/data/misc/profiles/cur/0/dev.dualapp.canary/primary.prof': Permission denied
+11-13 14:44:17.139 15516 15530 W jun.blackbox:p0: Could not forcefully load profile /data/misc/profiles/cur/0/dev.dualapp.canary/primary.prof
+11-13 14:44:17.577  5664  5664 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:run-as top.niunaijun.blackbox du -sk /data/user/0/top.niunaijun.blackbox/blackbox/data/user/0/com.mobile.legends'
+11-13 14:44:17.859  1098  1098 D io_stats: !@ Read_top(KB): ds:UnityKillsMe:top(15996) 10028 system_server:normal(2886) 292 run-as:normal(16352) 48
+11-13 14:44:18.085  2040  2101 D RenderEngine: Rendering layer 9f3f91c SurfaceView[com.mobile.legends/com.moba.unityplugin.MobaGameUnityActivity]@0(BLAST)#5764 at index 1
+11-13 14:44:20.077  2040  2101 D RenderEngine: Rendering layer 9f3f91c SurfaceView[com.mobile.legends/com.moba.unityplugin.MobaGameUnityActivity]@0(BLAST)#5764 at index 1
+11-13 14:44:21.860  1098  1098 D io_stats: !@ Read_top(KB): ds:UnityKillsMe:top(15996) 468 screencap:normal(16360) 440 surfaceflinger:normal(2040) 404
+11-13 14:44:24.338 15920 15926 W jun.blackbox:p1: Cleared Reference was only reachable from finalizer (only reported once)
+11-13 14:44:25.863  1098  1098 D io_stats: !@ Read_top(KB): ds:UnityKillsMe:top(15996) 780 vendor.samsung.:normal(1945) 4
+11-13 14:44:29.864  1098  1098 D io_stats: !@ Read_top(KB): ds:UnityKillsMe:top(15996) 2168
+11-13 14:44:33.444  5664  5664 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:du -sk /storage/emulated/0/Android/data/top.niunaijun.blackbox/files/blackbox/storage/emulated/0/Android/data/com.mobile.legends 2>/dev/null'
+11-13 14:44:33.865  1098  1098 D io_stats: !@ Read_top(KB): system_server:normal(2886) 3000 ds:UnityKillsMe:top(15996) 912 lowi-server:normal(2629) 356
+11-13 14:44:34.163  5664  5664 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:run-as top.niunaijun.blackbox du -sk /data/user/0/top.niunaijun.blackbox/blackbox/data/user/0/com.mobile.legends'
+11-13 14:44:34.690  2040  2101 D RenderEngine: Rendering layer 9f3f91c SurfaceView[com.mobile.legends/com.moba.unityplugin.MobaGameUnityActivity]@0(BLAST)#5764 at index 1
+11-13 14:44:37.867  1098  1098 D io_stats: !@ Read_top(KB): ds:UnityKillsMe:top(15996) 624 id.app.launcher:high(5069) 216 sung.android.ce:low(23223) 60
+11-13 14:44:41.868  1098  1098 D io_stats: !@ Read_top(KB): ds:UnityKillsMe:top(15996) 2004 kworker/u17:2:/(13156) 4
+11-13 14:44:45.870  1098  1098 D io_stats: !@ Read_top(KB): ds:UnityKillsMe:top(15996) 740 system_server:normal(2886) 8
+11-13 14:44:47.801 15920 15937 W jun.blackbox:p1: Couldn't lock the profile file /data/misc/profiles/cur/0/com.mobile.legends/Danmaku.split.prof: Failed to open file '/data/misc/profiles/cur/0/com.mobile.legends/Danmaku.split.prof': Permission denied
+11-13 14:44:47.802 15920 15937 W jun.blackbox:p1: Could not forcefully load profile /data/misc/profiles/cur/0/com.mobile.legends/Danmaku.split.prof
+11-13 14:44:47.802 15920 15937 W jun.blackbox:p1: Couldn't lock the profile file /data/misc/profiles/cur/0/com.mobile.legends/GNASDK.split.prof: Failed to open file '/data/misc/profiles/cur/0/com.mobile.legends/GNASDK.split.prof': Permission denied
+11-13 14:44:47.802 15920 15937 W jun.blackbox:p1: Could not forcefully load profile /data/misc/profiles/cur/0/com.mobile.legends/GNASDK.split.prof
+11-13 14:44:47.802 15920 15937 W jun.blackbox:p1: Couldn't lock the profile file /data/misc/profiles/cur/0/com.mobile.legends/GSDKRTC.split.prof: Failed to open file '/data/misc/profiles/cur/0/com.mobile.legends/GSDKRTC.split.prof': Permission denied
+11-13 14:44:47.802 15920 15937 W jun.blackbox:p1: Could not forcefully load profile /data/misc/profiles/cur/0/com.mobile.legends/GSDKRTC.split.prof
+11-13 14:44:47.802 15920 15937 W jun.blackbox:p1: Couldn't lock the profile file /data/misc/profiles/cur/0/com.mobile.legends/SDKVK.split.prof: Failed to open file '/data/misc/profiles/cur/0/com.mobile.legends/SDKVK.split.prof': Permission denied
+11-13 14:44:47.802 15920 15937 W jun.blackbox:p1: Could not forcefully load profile /data/misc/profiles/cur/0/com.mobile.legends/SDKVK.split.prof
+11-13 14:44:47.802 15920 15937 W jun.blackbox:p1: Couldn't lock the profile file /data/misc/profiles/cur/0/com.mobile.legends/WallPaper.split.prof: Failed to open file '/data/misc/profiles/cur/0/com.mobile.legends/WallPaper.split.prof': Permission denied
+11-13 14:44:47.802 15920 15937 W jun.blackbox:p1: Could not forcefully load profile /data/misc/profiles/cur/0/com.mobile.legends/WallPaper.split.prof
+11-13 14:44:47.802 15920 15937 W jun.blackbox:p1: Couldn't lock the profile file /data/misc/profiles/cur/0/com.mobile.legends/WifiDetective.split.prof: Failed to open file '/data/misc/profiles/cur/0/com.mobile.legends/WifiDetective.split.prof': Permission denied
+11-13 14:44:47.802 15920 15937 W jun.blackbox:p1: Could not forcefully load profile /data/misc/profiles/cur/0/com.mobile.legends/WifiDetective.split.prof
+11-13 14:44:47.802 15920 15937 W jun.blackbox:p1: Couldn't lock the profile file /data/misc/profiles/cur/0/com.mobile.legends/gpdeku.split.prof: Failed to open file '/data/misc/profiles/cur/0/com.mobile.legends/gpdeku.split.prof': Permission denied
+11-13 14:44:47.802 15920 15937 W jun.blackbox:p1: Could not forcefully load profile /data/misc/profiles/cur/0/com.mobile.legends/gpdeku.split.prof
+11-13 14:44:47.802 15920 15937 W jun.blackbox:p1: Couldn't lock the profile file /data/misc/profiles/cur/0/com.mobile.legends/primary.prof: Failed to open file '/data/misc/profiles/cur/0/com.mobile.legends/primary.prof': Permission denied
+11-13 14:44:47.802 15920 15937 W jun.blackbox:p1: Could not forcefully load profile /data/misc/profiles/cur/0/com.mobile.legends/primary.prof
+11-13 14:44:48.240 15996 16008 W jun.blackbox:p2: Couldn't lock the profile file /data/misc/profiles/cur/0/com.mobile.legends/Danmaku.split.prof: Failed to open file '/data/misc/profiles/cur/0/com.mobile.legends/Danmaku.split.prof': Permission denied
+11-13 14:44:48.240 15996 16008 W jun.blackbox:p2: Could not forcefully load profile /data/misc/profiles/cur/0/com.mobile.legends/Danmaku.split.prof
+11-13 14:44:48.240 15996 16008 W jun.blackbox:p2: Couldn't lock the profile file /data/misc/profiles/cur/0/com.mobile.legends/GNASDK.split.prof: Failed to open file '/data/misc/profiles/cur/0/com.mobile.legends/GNASDK.split.prof': Permission denied
+11-13 14:44:48.240 15996 16008 W jun.blackbox:p2: Could not forcefully load profile /data/misc/profiles/cur/0/com.mobile.legends/GNASDK.split.prof
+11-13 14:44:48.240 15996 16008 W jun.blackbox:p2: Couldn't lock the profile file /data/misc/profiles/cur/0/com.mobile.legends/GSDKRTC.split.prof: Failed to open file '/data/misc/profiles/cur/0/com.mobile.legends/GSDKRTC.split.prof': Permission denied
+11-13 14:44:48.240 15996 16008 W jun.blackbox:p2: Could not forcefully load profile /data/misc/profiles/cur/0/com.mobile.legends/GSDKRTC.split.prof
+11-13 14:44:48.240 15996 16008 W jun.blackbox:p2: Couldn't lock the profile file /data/misc/profiles/cur/0/com.mobile.legends/SDKVK.split.prof: Failed to open file '/data/misc/profiles/cur/0/com.mobile.legends/SDKVK.split.prof': Permission denied
+11-13 14:44:48.240 15996 16008 W jun.blackbox:p2: Could not forcefully load profile /data/misc/profiles/cur/0/com.mobile.legends/SDKVK.split.prof
+11-13 14:44:48.240 15996 16008 W jun.blackbox:p2: Couldn't lock the profile file /data/misc/profiles/cur/0/com.mobile.legends/WallPaper.split.prof: Failed to open file '/data/misc/profiles/cur/0/com.mobile.legends/WallPaper.split.prof': Permission denied
+11-13 14:44:48.240 15996 16008 W jun.blackbox:p2: Could not forcefully load profile /data/misc/profiles/cur/0/com.mobile.legends/WallPaper.split.prof
+11-13 14:44:48.240 15996 16008 W jun.blackbox:p2: Couldn't lock the profile file /data/misc/profiles/cur/0/com.mobile.legends/WifiDetective.split.prof: Failed to open file '/data/misc/profiles/cur/0/com.mobile.legends/WifiDetective.split.prof': Permission denied
+11-13 14:44:48.240 15996 16008 W jun.blackbox:p2: Could not forcefully load profile /data/misc/profiles/cur/0/com.mobile.legends/WifiDetective.split.prof
+11-13 14:44:48.240 15996 16008 W jun.blackbox:p2: Couldn't lock the profile file /data/misc/profiles/cur/0/com.mobile.legends/gpdeku.split.prof: Failed to open file '/data/misc/profiles/cur/0/com.mobile.legends/gpdeku.split.prof': Permission denied
+11-13 14:44:48.240 15996 16008 W jun.blackbox:p2: Could not forcefully load profile /data/misc/profiles/cur/0/com.mobile.legends/gpdeku.split.prof
+11-13 14:44:48.240 15996 16008 W jun.blackbox:p2: Couldn't lock the profile file /data/misc/profiles/cur/0/com.mobile.legends/primary.prof: Failed to open file '/data/misc/profiles/cur/0/com.mobile.legends/primary.prof': Permission denied
+11-13 14:44:48.240 15996 16008 W jun.blackbox:p2: Could not forcefully load profile /data/misc/profiles/cur/0/com.mobile.legends/primary.prof
+11-13 14:44:49.872  1098  1098 D io_stats: !@ Read_top(KB): ds:UnityKillsMe:top(15996) 384 gle.android.gms:high(4392) 20
+11-13 14:44:50.140  2040  2101 D RenderEngine: Rendering layer 9f3f91c SurfaceView[com.mobile.legends/com.moba.unityplugin.MobaGameUnityActivity]@0(BLAST)#5764 at index 1
+11-13 14:44:50.224  5664  5664 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:du -sk /storage/emulated/0/Android/data/top.niunaijun.blackbox/files/blackbox/storage/emulated/0/Android/data/com.mobile.legends 2>/dev/null'
+11-13 14:44:51.043  5664  5664 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:run-as top.niunaijun.blackbox du -sk /data/user/0/top.niunaijun.blackbox/blackbox/data/user/0/com.mobile.legends'
+11-13 14:44:51.638  2040  2101 D RenderEngine: Rendering layer 9f3f91c SurfaceView[com.mobile.legends/com.moba.unityplugin.MobaGameUnityActivity]@0(BLAST)#5764 at index 1
+11-13 14:44:53.873  1098  1098 D io_stats: !@ Read_top(KB): ds:UnityKillsMe:top(15996) 1332 rkstack.process:normal(4251) 20 sh:normal(16439) 12
+11-13 14:44:57.875  1098  1098 D io_stats: !@ Read_top(KB): ds:UnityKillsMe:top(15996) 732 m.android.phone:normal(4199) 16 gle.android.gms:high(4392) 16
+11-13 14:45:01.877  1098  1098 D io_stats: !@ Read_top(KB): ds:UnityKillsMe:top(15996) 440 tes.accubattery:low(15569) 152
+11-13 14:45:05.878  1098  1098 D io_stats: !@ Read_top(KB): ung.android.fmm:low(4432) 764 ds:UnityKillsMe:top(15996) 548 rild:normal(2439) 20
+11-13 14:45:07.171  5664  5664 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:du -sk /storage/emulated/0/Android/data/top.niunaijun.blackbox/files/blackbox/storage/emulated/0/Android/data/com.mobile.legends 2>/dev/null'
+11-13 14:45:07.970  5664  5664 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:run-as top.niunaijun.blackbox du -sk /data/user/0/top.niunaijun.blackbox/blackbox/data/user/0/com.mobile.legends'
+11-13 14:45:08.510  2040  2101 D RenderEngine: Rendering layer 9f3f91c SurfaceView[com.mobile.legends/com.moba.unityplugin.MobaGameUnityActivity]@0(BLAST)#5764 at index 1
+11-13 14:45:08.995  2886  3140 D GMR     : bg_async : 15920 top.niunaijun.blackbox:p1 700->900 state:15->15
+11-13 14:45:09.879  1098  1098 D io_stats: !@ Read_top(KB): ds:UnityKillsMe:top(15996) 588 rild:normal(2439) 200 kworker/4:6H:/(9853) 4
+11-13 14:45:10.999  2886  4743 D GMR     : bg : 15920 top.niunaijun.blackbox:p1
+11-13 14:45:13.881  1098  1098 D io_stats: !@ Read_top(KB): ds:UnityKillsMe:top(15996) 388 system_server:normal(2886) 48
+11-13 14:45:17.882  1098  1098 D io_stats: !@ Read_top(KB): ds:UnityKillsMe:top(15996) 2668 android.vending:high(10416) 64 .sec.imsservice:normal(4455) 8
+11-13 14:45:20.211  2040  2101 D RenderEngine: Rendering layer 9f3f91c SurfaceView[com.mobile.legends/com.moba.unityplugin.MobaGameUnityActivity]@0(BLAST)#5764 at index 1
+11-13 14:45:21.884  1098  1098 D io_stats: !@ Read_top(KB): ds:UnityKillsMe:top(15996) 1320 s.messaging:rcs:high(6977) 224 .qms:normal(4868) 128
+11-13 14:45:24.096  5664  5664 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:du -sk /storage/emulated/0/Android/data/top.niunaijun.blackbox/files/blackbox/storage/emulated/0/Android/data/com.mobile.legends 2>/dev/null'
+11-13 14:45:24.907  5664  5664 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:run-as top.niunaijun.blackbox du -sk /data/user/0/top.niunaijun.blackbox/blackbox/data/user/0/com.mobile.legends'
+11-13 14:45:25.426  2040  2101 D RenderEngine: Rendering layer 9f3f91c SurfaceView[com.mobile.legends/com.moba.unityplugin.MobaGameUnityActivity]@0(BLAST)#5764 at index 1
+11-13 14:45:25.885  1098  1098 D io_stats: !@ Read_top(KB): ds:UnityKillsMe:top(15996) 2444 s.messaging:rcs:high(6977) 52
+11-13 14:45:29.887  1098  1098 D io_stats: !@ Read_top(KB): ds:UnityKillsMe:top(15996) 780
+11-13 14:45:33.888  1098  1098 D io_stats: !@ Read_top(KB): ds:UnityKillsMe:top(15996) 372 s.messaging:rcs:high(6977) 12 s.messaging:rcs:high(6977) 4
+11-13 14:45:37.890  1098  1098 D io_stats: !@ Read_top(KB): ds:UnityKillsMe:top(15996) 1080 heatmap:normal(1983) 4 system_server:normal(2886) 4
+11-13 14:45:41.033  5664  5664 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:du -sk /storage/emulated/0/Android/data/top.niunaijun.blackbox/files/blackbox/storage/emulated/0/Android/data/com.mobile.legends 2>/dev/null'
+11-13 14:45:41.848  5664  5664 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:run-as top.niunaijun.blackbox du -sk /data/user/0/top.niunaijun.blackbox/blackbox/data/user/0/com.mobile.legends'
+11-13 14:45:41.891  1098  1098 D io_stats: !@ Read_top(KB): ds:UnityKillsMe:top(15996) 708
+11-13 14:45:42.349  2040  2101 D RenderEngine: Rendering layer 9f3f91c SurfaceView[com.mobile.legends/com.moba.unityplugin.MobaGameUnityActivity]@0(BLAST)#5764 at index 1
+11-13 14:45:45.893  1098  1098 D io_stats: !@ Read_top(KB): ds:UnityKillsMe:top(15996) 1724
+11-13 14:45:49.896  1098  1098 D io_stats: !@ Read_top(KB): c.android.sdhms:normal(7142) 9488 ds:UnityKillsMe:top(15996) 868
+11-13 14:45:50.285  2040  2101 D RenderEngine: Rendering layer 9f3f91c SurfaceView[com.mobile.legends/com.moba.unityplugin.MobaGameUnityActivity]@0(BLAST)#5764 at index 1
+11-13 14:45:53.897  1098  1098 D io_stats: !@ Read_top(KB): ds:UnityKillsMe:top(15996) 1416 .apps.messaging:high(27619) 244 ewlogd:normal(2309) 4
+11-13 14:45:57.891  5664  5664 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:du -sk /storage/emulated/0/Android/data/top.niunaijun.blackbox/files/blackbox/storage/emulated/0/Android/data/com.mobile.legends 2>/dev/null'
+11-13 14:45:57.899  1098  1098 D io_stats: !@ Read_top(KB): ds:UnityKillsMe:top(15996) 2500 gle.android.gms:high(4392) 8
+11-13 14:45:58.700  5664  5664 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:run-as top.niunaijun.blackbox du -sk /data/user/0/top.niunaijun.blackbox/blackbox/data/user/0/com.mobile.legends'
+11-13 14:45:59.231  2040  2101 D RenderEngine: Rendering layer 9f3f91c SurfaceView[com.mobile.legends/com.moba.unityplugin.MobaGameUnityActivity]@0(BLAST)#5764 at index 1
+11-13 14:46:01.900  1098  1098 D io_stats: !@ Read_top(KB): ds:UnityKillsMe:top(15996) 1724 s.messaging:rcs:high(6977) 84 gle.android.gms:high(4392) 76
+11-13 14:46:05.902  1098  1098 D io_stats: !@ Read_top(KB): ds:UnityKillsMe:top(15996) 1808
+11-13 14:46:09.903  1098  1098 D io_stats: !@ Read_top(KB): ds:UnityKillsMe:top(15996) 664
+11-13 14:46:13.906  1098  1098 D io_stats: !@ Read_top(KB): ds:UnityKillsMe:top(15996) 1384 .sec.imsservice:normal(4455) 1364 rild:normal(2439) 332
+11-13 14:46:14.746  5664  5664 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:du -sk /storage/emulated/0/Android/data/top.niunaijun.blackbox/files/blackbox/storage/emulated/0/Android/data/com.mobile.legends 2>/dev/null'
+11-13 14:46:15.569  5664  5664 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:run-as top.niunaijun.blackbox du -sk /data/user/0/top.niunaijun.blackbox/blackbox/data/user/0/com.mobile.legends'
+11-13 14:46:16.204  2040  2101 D RenderEngine: Rendering layer 9f3f91c SurfaceView[com.mobile.legends/com.moba.unityplugin.MobaGameUnityActivity]@0(BLAST)#5764 at index 1
+11-13 14:46:17.908  1098  1098 D io_stats: !@ Read_top(KB): ds:UnityKillsMe:top(15996) 612 m.android.phone:normal(4199) 16 system_server:normal(2886) 8
+11-13 14:46:20.356  2040  2101 D RenderEngine: Rendering layer 9f3f91c SurfaceView[com.mobile.legends/com.moba.unityplugin.MobaGameUnityActivity]@0(BLAST)#5764 at index 1
+11-13 14:46:21.909  1098  1098 D io_stats: !@ Read_top(KB): ds:UnityKillsMe:top(15996) 560 system_server:normal(2886) 376
+11-13 14:46:25.911  1098  1098 D io_stats: !@ Read_top(KB): ds:UnityKillsMe:top(15996) 1324 android.vending:high(10416) 12
+11-13 14:46:29.914  1098  1098 D io_stats: !@ Read_top(KB): ds:UnityKillsMe:top(15996) 1168
+11-13 14:46:31.775  5664  5664 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:du -sk /storage/emulated/0/Android/data/top.niunaijun.blackbox/files/blackbox/storage/emulated/0/Android/data/com.mobile.legends 2>/dev/null'
+11-13 14:46:32.594  5664  5664 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:run-as top.niunaijun.blackbox du -sk /data/user/0/top.niunaijun.blackbox/blackbox/data/user/0/com.mobile.legends'
+11-13 14:46:33.098  2040  2101 D RenderEngine: Rendering layer 9f3f91c SurfaceView[com.mobile.legends/com.moba.unityplugin.MobaGameUnityActivity]@0(BLAST)#5764 at index 1
+11-13 14:46:45.487  2886  7264 D SGM:GameManager: identifyForegroundApp. top.niunaijun.blackbox, mCurrentUserId: 0, callerUserId: 0
+11-13 14:46:48.667  5664  5664 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:du -sk /storage/emulated/0/Android/data/top.niunaijun.blackbox/files/blackbox/storage/emulated/0/Android/data/com.mobile.legends 2>/dev/null'
+11-13 14:46:49.482  5664  5664 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:run-as top.niunaijun.blackbox du -sk /data/user/0/top.niunaijun.blackbox/blackbox/data/user/0/com.mobile.legends'
+11-13 14:46:50.016  2040  2101 D RenderEngine: Rendering layer 9f3f91c SurfaceView[com.mobile.legends/com.moba.unityplugin.MobaGameUnityActivity]@0(BLAST)#5764 at index 1
+11-13 14:46:50.430  2040  2101 D RenderEngine: Rendering layer 9f3f91c SurfaceView[com.mobile.legends/com.moba.unityplugin.MobaGameUnityActivity]@0(BLAST)#5764 at index 1
+11-13 14:47:01.928  1098  1098 D io_stats: !@ Write_top(KB): kworker/u17:2:/(13156) 9760 ds:UnityKillsMe:top(15996) 1000 system_server:normal(2886) 24
+11-13 14:47:05.594  5664  5664 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:du -sk /storage/emulated/0/Android/data/top.niunaijun.blackbox/files/blackbox/storage/emulated/0/Android/data/com.mobile.legends 2>/dev/null'
+11-13 14:47:06.420  5664  5664 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:run-as top.niunaijun.blackbox du -sk /data/user/0/top.niunaijun.blackbox/blackbox/data/user/0/com.mobile.legends'
+11-13 14:47:06.943  2040  2101 D RenderEngine: Rendering layer 9f3f91c SurfaceView[com.mobile.legends/com.moba.unityplugin.MobaGameUnityActivity]@0(BLAST)#5764 at index 1
+11-13 14:47:20.504  2040  2101 D RenderEngine: Rendering layer 9f3f91c SurfaceView[com.mobile.legends/com.moba.unityplugin.MobaGameUnityActivity]@0(BLAST)#5764 at index 1
+11-13 14:47:22.494  5664  5664 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:du -sk /storage/emulated/0/Android/data/top.niunaijun.blackbox/files/blackbox/storage/emulated/0/Android/data/com.mobile.legends 2>/dev/null'
+11-13 14:47:23.308  5664  5664 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:run-as top.niunaijun.blackbox du -sk /data/user/0/top.niunaijun.blackbox/blackbox/data/user/0/com.mobile.legends'
+11-13 14:47:23.839  2040  2101 D RenderEngine: Rendering layer 9f3f91c SurfaceView[com.mobile.legends/com.moba.unityplugin.MobaGameUnityActivity]@0(BLAST)#5764 at index 1
+11-13 14:47:30.809 15996 16063 W Unity   : [NextMapModule] _SyncInfoToServerMainThread request.bNext2025Ready = True 
+11-13 14:47:30.809 15996 16063 W Unity   : (Filename: ./Runtime/Export/Debug/Debug.bindings.h Line: 39)
+11-13 14:47:30.809 15996 16063 W Unity   : 
+11-13 14:47:30.809 15996 16063 W Unity   : [NextMapModule] _SyncInfoToServerMainThread bNext2026Ready = False 
+11-13 14:47:30.809 15996 16063 W Unity   : (Filename: ./Runtime/Export/Debug/Debug.bindings.h Line: 39)
+11-13 14:47:30.809 15996 16063 W Unity   : 
+11-13 14:47:33.941  1098  1098 D io_stats: !@ Read_top(KB): ds:UnityKillsMe:top(15996) 940 system_server:normal(2886) 36
+11-13 14:47:37.943  1098  1098 D io_stats: !@ Read_top(KB): ds:UnityKillsMe:top(15996) 340
+11-13 14:47:39.405  5664  5664 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:du -sk /storage/emulated/0/Android/data/top.niunaijun.blackbox/files/blackbox/storage/emulated/0/Android/data/com.mobile.legends 2>/dev/null'
+11-13 14:47:40.239  5664  5664 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:run-as top.niunaijun.blackbox du -sk /data/user/0/top.niunaijun.blackbox/blackbox/data/user/0/com.mobile.legends'
+11-13 14:47:40.881  2040  2101 D RenderEngine: Rendering layer 9f3f91c SurfaceView[com.mobile.legends/com.moba.unityplugin.MobaGameUnityActivity]@0(BLAST)#5764 at index 1
+11-13 14:47:50.576  2040  2101 D RenderEngine: Rendering layer 9f3f91c SurfaceView[com.mobile.legends/com.moba.unityplugin.MobaGameUnityActivity]@0(BLAST)#5764 at index 1
+11-13 14:47:56.476  5664  5664 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:du -sk /storage/emulated/0/Android/data/top.niunaijun.blackbox/files/blackbox/storage/emulated/0/Android/data/com.mobile.legends 2>/dev/null'
+11-13 14:47:57.317  5664  5664 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:run-as top.niunaijun.blackbox du -sk /data/user/0/top.niunaijun.blackbox/blackbox/data/user/0/com.mobile.legends'
+11-13 14:47:57.873  2040  2101 D RenderEngine: Rendering layer 9f3f91c SurfaceView[com.mobile.legends/com.moba.unityplugin.MobaGameUnityActivity]@0(BLAST)#5764 at index 1
+11-13 14:47:57.950  1098  1098 D io_stats: !@ Read_top(KB): ds:UnityKillsMe:top(15996) 508 gle.android.gms:high(4392) 56
+11-13 14:48:01.952  1098  1098 D io_stats: !@ Read_top(KB): ds:UnityKillsMe:top(15996) 36 ndroid.systemui:high(4761) 24 system_server:normal(2886) 12
+11-13 14:48:13.425  5664  5664 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:du -sk /storage/emulated/0/Android/data/top.niunaijun.blackbox/files/blackbox/storage/emulated/0/Android/data/com.mobile.legends 2>/dev/null'
+11-13 14:48:14.247  5664  5664 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:run-as top.niunaijun.blackbox du -sk /data/user/0/top.niunaijun.blackbox/blackbox/data/user/0/com.mobile.legends'
+11-13 14:48:14.805  2040  2101 D RenderEngine: Rendering layer 9f3f91c SurfaceView[com.mobile.legends/com.moba.unityplugin.MobaGameUnityActivity]@0(BLAST)#5764 at index 1
+11-13 14:48:20.651  2040  2101 D RenderEngine: Rendering layer 9f3f91c SurfaceView[com.mobile.legends/com.moba.unityplugin.MobaGameUnityActivity]@0(BLAST)#5764 at index 1
+11-13 14:48:21.959  1098  1098 D io_stats: !@ Read_top(KB): soft.appmanager:high(9217) 392 ds:UnityKillsMe:top(15996) 20 binder:1799_3:normal(1799) 4
+11-13 14:48:30.428  5664  5664 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:du -sk /storage/emulated/0/Android/data/top.niunaijun.blackbox/files/blackbox/storage/emulated/0/Android/data/com.mobile.legends 2>/dev/null'
+11-13 14:48:31.275  5664  5664 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:run-as top.niunaijun.blackbox du -sk /data/user/0/top.niunaijun.blackbox/blackbox/data/user/0/com.mobile.legends'
+11-13 14:48:31.826  2040  2101 D RenderEngine: Rendering layer 9f3f91c SurfaceView[com.mobile.legends/com.moba.unityplugin.MobaGameUnityActivity]@0(BLAST)#5764 at index 1
+11-13 14:48:47.405  5664  5664 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:du -sk /storage/emulated/0/Android/data/top.niunaijun.blackbox/files/blackbox/storage/emulated/0/Android/data/com.mobile.legends 2>/dev/null'
+11-13 14:48:48.229  5664  5664 I adbd    : adbd service requested 'shell,v2,TERM=xterm-256color,raw:run-as top.niunaijun.blackbox du -sk /data/user/0/top.niunaijun.blackbox/blackbox/data/user/0/com.mobile.legends'
+11-13 14:48:48.800  2040  2101 D RenderEngine: Rendering layer 9f3f91c SurfaceView[com.mobile.legends/com.moba.unityplugin.MobaGameUnityActivity]@0(BLAST)#5764 at index 1

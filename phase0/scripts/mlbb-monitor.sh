@@ -33,7 +33,6 @@ while [ $T -le $MAX_S ]; do
   "$A" exec-out screencap -p > "$OUT/t$T.png"
   if [ $(( (${E:-0}-${E0:-0})/1024 )) -ge $CAP_MB ]; then echo "CAP reached, stopping" | tee -a "$OUT/log.txt"; break; fi
   C=$("$A" logcat -d -b crash | tr -d '\r' | grep -c 'Abort message')
-' | grep -c 'Abort message')
   echo "  crashes so far: $C" | tee -a "$OUT/log.txt"
   if [ "${C:-0}" -ge 10 ]; then echo "crash loop, stopping" | tee -a "$OUT/log.txt"; break; fi
 done

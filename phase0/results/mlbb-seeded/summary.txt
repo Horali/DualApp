@@ -1,0 +1,22 @@
+MLBB seeded L2 test inside NewBlackbox User 0 (engine + patch 0001, spoofing on, no login). 2026-11-13.
+
+Seed: copied the host MLBB's assets/img folder into the clone with `cp -rn` from adb shell
+(host files only read). 1,037,291 KiB, 47,069 files, 13 s. Free space 18 GB -> 17 GB.
+Pre-check: 300 sampled files the clone had already downloaded were byte-identical (SHA-256)
+to the host's copies, so MLBB assets are the same bytes in every instance (dedupable).
+
+Run: 4 min 15 s, zero crashes, game sat on Create Character (Confirm not tapped).
+  downloaded 318 MB, wrote 316 MB external, 5,086 new files, none of them under img/
+  seeded img/: 47,069 files still present, 0 rewritten after seeding, 0 deleted
+
+What this shows
+  - MLBB did not delete, overwrite or re-verify-and-replace the seeded files during the run.
+  - MLBB keeps assets as plain files with identical bytes across instances -> L1 (shared pool) applies.
+What it does NOT show
+  - That the downloader will skip img/ when it reaches it. In 4 min it never got to img/,
+    and its state files (last_download_state, loadres_*) are binary, so the queue could not be read.
+  - Proof needs a run long enough to finish the download (~12 GB at ~1.2-1.9 MB/s = 2-3 h)
+    and more free space than the phone has (16 GB now).
+Status: L2 PARTIAL / UNPROVEN. Index-mode A/B comparison not possible with MLBB (its index is binary and private).
+
+Clone MLBB data now ~2.3 GB inside the engine's folders (incl. the 1 GB seed).

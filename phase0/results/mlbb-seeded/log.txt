@@ -1,0 +1,39 @@
+t_s ext_MB int_MB net_rx_MB free
+15 4 0 5 17G
+  crashes so far: 0
+30 22 0 25 17G
+  crashes so far: 0
+45 42 0 44 17G
+  crashes so far: 0
+60 59 0 63 17G
+  crashes so far: 0
+75 79 0 81 17G
+  crashes so far: 0
+90 95 0 97 17G
+  crashes so far: 0
+105 111 0 114 17G
+  crashes so far: 0
+120 127 0 130 17G
+  crashes so far: 0
+135 143 0 147 17G
+  crashes so far: 0
+150 161 0 164 17G
+  crashes so far: 0
+165 180 0 183 17G
+  crashes so far: 0
+180 206 0 209 17G
+  crashes so far: 0
+195 236 0 239 17G
+  crashes so far: 0
+210 265 0 267 17G
+  crashes so far: 0
+225 288 0 290 17G
+  crashes so far: 0
+240 300 0 302 16G
+  crashes so far: 0
+255 316 0 318 16G
+  crashes so far: 0
+img_files_now=47069
+img_rewritten_after_seed=0
+img_size=1036083K
+other_new_files=5086
