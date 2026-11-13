@@ -1,0 +1,8 @@
+11-13 13:34:15.976 30152 30152 I CANARY  : dataDir=/data/user/0/dev.dualapp.canary
+11-13 13:34:15.976 30152 30152 I CANARY  : reported model=SM-S936B sdk=37
+11-13 13:34:15.976 30152 30152 I CANARY  : reported fingerprint=samsung/pa2qxxx/pa2q:17/CP2A.260605.016/S936BXXUDDZJB_OXMDDZJB:user/release-keys
+11-13 13:34:15.976 30152 30152 I CANARY  : SUMMARY id=1d163fe9 run=1 consistent=true prefs=0 db=0 int=0 ext=0
+11-13 13:34:16.448 30254 30254 I CANARY  : dataDir=/data/user/0/dev.dualapp.canary
+11-13 13:34:16.448 30254 30254 I CANARY  : reported model=SM-S936B sdk=37
+11-13 13:34:16.448 30254 30254 I CANARY  : reported fingerprint=samsung/pa2qxxx/pa2q:17/CP2A.260605.016/S936BXXUDDZJB_OXMDDZJB:user/release-keys
+11-13 13:34:16.448 30254 30254 I CANARY  : SUMMARY id=1d163fe9 run=2 consistent=true prefs=1 db=1 int=1 ext=1
