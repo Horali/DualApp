@@ -1,0 +1,233 @@
+
+===== adb devices =====
+List of devices attached
+RRCY1032Y6F            device product:pa2qxxx model:SM_S936B device:pa2q transport_id:2
+
+
+===== Identity and firmware =====
+ro.product.model                     SM-S936B
+ro.product.device                    pa2q
+ro.product.name                      pa2qxxx
+ro.build.version.release             17
+ro.build.version.sdk                 37
+ro.build.version.sdk_full            37.0
+ro.build.version.security_patch      2026-10-05
+ro.build.display.id                  CP2A.260605.016.S936BXXUDDZJB
+ro.build.fingerprint                 samsung/pa2qxxx/pa2q:17/CP2A.260605.016/S936BXXUDDZJB_OXMDDZJB:user/release-keys
+ro.build.PDA                         S936BXXUDDZJB
+ro.build.version.oneui               90000
+ro.build.version.incremental         S936BXXUDDZJB
+ro.boot.hardware                     qcom
+ro.soc.model                         SM8750
+ro.board.platform                    sun
+
+===== Kernel =====
+Linux localhost 6.6.127-android15-8-p87b1ce1-abogkiS936BXXUDDZJB-4k #1 SMP PREEMPT Mon Oct 19 08:37:42 UTC 2026 aarch64 Toybox
+
+===== CPU ABIs =====
+abilist   arm64-v8a
+abilist32 
+abilist64 arm64-v8a
+
+===== Page size =====
+4096
+
+===== Mainline modules (ART and others) =====
+package:com.samsung.android.shell versionCode:372610191
+package:com.google.android.adbd versionCode:372038020
+package:com.samsung.android.camera.unihal versionCode:352408080
+package:com.google.android.sdkext versionCode:372038020
+package:com.samsung.android.biometrics.face versionCode:362604270
+package:com.android.bt versionCode:370399999
+package:com.samsung.android.media.imagecodec.system versionCode:372608281
+package:com.google.android.healthfitness versionCode:372042540
+package:com.android.apex.cts.shim versionCode:1
+package:com.google.android.tzdata6 versionCode:371021100
+package:com.android.uprobestats versionCode:370399999
+package:com.google.android.permission versionCode:372527060
+package:com.google.android.ondevicepersonalization versionCode:372038020
+package:com.google.android.conscrypt versionCode:372042640
+package:com.samsung.android.mediacontextanalyzer versionCode:372606011
+package:com.google.android.neuralnetworks versionCode:372038020
+package:com.samsung.android.biometrics.fingerprint versionCode:362604240
+package:com.google.android.gmssystem versionCode:2624360
+package:com.google.android.tethering versionCode:372038420
+package:com.google.android.mediaprovider versionCode:372042780
+package:com.android.npumanager versionCode:370399999
+package:com.google.android.adservices versionCode:372038020
+package:com.google.android.appsearch versionCode:372042080
+package:com.android.devicelock versionCode:1
+package:com.samsung.android.sfa versionCode:372606160
+package:com.google.android.media.swcodec versionCode:372042380
+package:com.google.android.extservices versionCode:372038023
+package:com.samsung.android.media.swcodec.vendor versionCode:362511051
+package:com.samsung.android.rild versionCode:370061500
+package:com.android.uwb versionCode:370399999
+package:com.google.android.rkpd versionCode:372038320
+package:com.samsung.android.media.swcodec.system versionCode:362511051
+package:com.android.hardware.biometrics.fingerprint.virtual versionCode:1
+package:com.google.android.ipsec versionCode:372038020
+package:com.google.android.crashrecovery versionCode:372038020
+package:com.google.android.configinfrastructure versionCode:372038020
+package:com.google.android.cellbroadcast versionCode:372042180
+package:com.google.android.profiling versionCode:372038020
+package:com.android.hardware.cas.lazy versionCode:1
+package:com.google.android.resolv versionCode:372038020
+package:com.google.android.art versionCode:372042720
+package:com.android.runtime versionCode:1
+package:com.samsung.android.vital versionCode:340000000
+package:com.google.android.scheduling versionCode:372038320
+package:com.google.android.media versionCode:372038420
+package:com.android.virt versionCode:370399999
+package:com.samsung.android.media.extractor versionCode:342505131
+package:com.android.webapp versionCode:370399999
+package:com.android.i18n versionCode:1
+package:com.google.android.os.statsd versionCode:372040000
+package:com.samsung.android.spqr versionCode:432
+package:com.samsung.android.lifeguard versionCode:342505121
+package:com.samsung.android.authfw.ta versionCode:342610190
+package:com.android.wifi versionCode:370399999
+package:com.google.android.widevine.nonupdatable versionCode:190241014
+package:com.android.compos versionCode:370399999
+package:com.android.telephonycore versionCode:370399999
+package:com.android.nfcservices versionCode:370399999
+Error: java.lang.SecurityException: Shell does not have permission to access user 150
+ com.android.server.am.ActivityManagerService.handleIncomingUser:7 android.app.ActivityManager.handleIncomingUser:6436 com.android.server.pm.PackageManagerShellCommand.translateUserId:23 
+package:com.google.android.art versionCode:372042720
+package:com.android.runtime versionCode:1
+
+===== Storage =====
+Filesystem      Size Used Avail Use% Mounted on
+df: 'C:/Program': No such file or directory
+df: 'Files/Git/data': No such file or directory
+Filesystem      Size Used Avail Use% Mounted on
+df: 'C:/Program': No such file or directory
+df: 'Files/Git/storage/emulated/0': No such file or directory
+
+===== Users and profiles (read-only) =====
+Users:
+	UserInfo{0:Childish FTW:4c13} running
+	UserInfo{150:Secure Folder:61090}
+Maximum supported switchable users: 1
+
+  UserInfo{0:xxx:4c13} serialNo=0 isPrimary=true
+        mUpdateCrossProfileIntentFiltersOnOTA=false
+        mCrossProfileIntentFilterAccessControl=0
+        mCrossProfileIntentResolutionStrategy=0
+        mCrossProfileContentSharingStrategy=0
+        mProfileApiVisibility=0
+  UserInfo{150:xxx:61090} serialNo=150 isPrimary=false parentId=0
+    Type: android.os.usertype.profile.PRIVATE
+    Flags: 397456 (INITIALIZED|PROFILE|QUIET_MODE|SDP_NOT_SUPPORTED_SECURE_FOLDER|SECURE_FOLDER)
+      no_cross_profile_copy_paste
+      no_cross_profile_copy_paste
+        mUpdateCrossProfileIntentFiltersOnOTA=true
+        mCrossProfileIntentFilterAccessControl=10
+        mCrossProfileIntentResolutionStrategy=0
+        mCrossProfileContentSharingStrategy=1
+        mProfileApiVisibility=1
+  Number of started visible user / profile group mappings: 1
+    0: com.android.server.location.injector.SystemUserInfoHelper$$ExternalSyntheticLambda0@84efce
+    android.os.usertype.profile.COMMUNAL: 
+        mName: android.os.usertype.profile.COMMUNAL
+        mBaseType: PROFILE
+        mDefaultUserInfoFlags: 0
+            mUpdateCrossProfileIntentFiltersOnOTA=false
+            mCrossProfileIntentFilterAccessControl=0
+            mCrossProfileIntentResolutionStrategy=0
+            mCrossProfileContentSharingStrategy=0
+            mProfileApiVisibility=0
+        mProfileParentRequired: false
+    android.os.usertype.profile.PRIVATE: 
+        mName: android.os.usertype.profile.PRIVATE
+        mBaseType: PROFILE
+        mDefaultUserInfoFlags: 0
+            mUpdateCrossProfileIntentFiltersOnOTA=true
+            mCrossProfileIntentFilterAccessControl=10
+            mCrossProfileIntentResolutionStrategy=0
+            mCrossProfileContentSharingStrategy=1
+            mProfileApiVisibility=1
+        mProfileParentRequired: true
+        mDefaultUserInfoFlags: GUEST
+            mUpdateCrossProfileIntentFiltersOnOTA=false
+            mCrossProfileIntentFilterAccessControl=0
+            mCrossProfileIntentResolutionStrategy=0
+            mCrossProfileContentSharingStrategy=0
+            mProfileApiVisibility=0
+        mProfileParentRequired: false
+    android.os.usertype.profile.SUPERVISING: 
+        mName: android.os.usertype.profile.SUPERVISING
+        mBaseType: PROFILE
+        mDefaultUserInfoFlags: 0
+            mUpdateCrossProfileIntentFiltersOnOTA=false
+            mCrossProfileIntentFilterAccessControl=0
+            mCrossProfileIntentResolutionStrategy=0
+            mCrossProfileContentSharingStrategy=0
+            mProfileApiVisibility=0
+        mProfileParentRequired: false
+    android.os.usertype.profile.MANAGED: 
+        mName: android.os.usertype.profile.MANAGED
+        mBaseType: PROFILE
+        mDefaultUserInfoFlags: MANAGED_PROFILE
+            mUpdateCrossProfileIntentFiltersOnOTA=false
+
+===== Memory =====
+MemTotal:       11379848 kB
+MemFree:          271664 kB
+MemAvailable:    3453524 kB
+Buffers:            8628 kB
+Cached:          3092712 kB
+
+===== SELinux mode =====
+Enforcing
+
+===== Target app metadata (no data access) =====
+--- com.mobile.legends
+    flags=0x0
+    flags=0x0
+    codePath=/data/app/~~rvI-Bjg1bEZTxTIH6y10iw==/com.mobile.legends-9m3H3Eb_vIqDgQBlw4DO1Q==
+    extractNativeLibs=true
+    primaryCpuAbi=arm64-v8a
+    versionCode=211812351 minSdk=21 targetSdk=36
+    versionName=2.2.23.12351
+    splits=[base, Danmaku, GNASDK, GNASDK.config.arm64_v8a, GSDKRTC, GSDKRTC.config.arm64_v8a, PlayAssetPack, PlayAssetPack.config.countries_id, SDKVK, WallPaper, WifiDetective, config.arm64_v8a, gpdeku, gpdeku.config.arm64_v8a]
+    flags=[ HAS_CODE ALLOW_CLEAR_USER_DATA ]
+    pageSizeCompat=0
+        android.permission.READ_CALENDAR: granted=true, flags=[ USER_SET|USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]
+        android.permission.POST_NOTIFICATIONS: granted=true, flags=[ USER_SET|USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]
+        android.permission.ACCESS_FINE_LOCATION: granted=false, flags=[ USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]
+        android.permission.ACCESS_LOCAL_NETWORK: granted=true, flags=[ REVOKE_WHEN_REQUESTED|USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]
+        android.permission.NEARBY_WIFI_DEVICES: granted=false, flags=[ USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]
+        android.permission.BLUETOOTH_CONNECT: granted=true, flags=[ USER_SET|USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]
+        android.permission.READ_EXTERNAL_STORAGE: granted=false, flags=[ REVOKE_WHEN_REQUESTED|USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED|RESTRICTION_INSTALLER_EXEMPT|RESTRICTION_UPGRADE_EXEMPT]
+        android.permission.ACCESS_COARSE_LOCATION: granted=false, flags=[ USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]
+        android.permission.READ_PHONE_STATE: granted=false, flags=[ USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]
+        android.permission.CAMERA: granted=false, flags=[ USER_SET|USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]
+--- com.instagram.android
+    flags=0x0
+    flags=0x0
+    flags=0x0
+    flags=0x0
+    codePath=/data/app/~~HuK5m2bgIpWnxzfDdgcq4g==/com.instagram.android-HMTDfCjchp82bVDVdc5F3g==
+    extractNativeLibs=true
+    primaryCpuAbi=arm64-v8a
+    versionCode=386113969 minSdk=28 targetSdk=37
+    versionName=455.0.0.51.72
+    splits=[base, arservicesforpersonsegmentation, config.xxhdpi, executorch, heliumcore, heliumiabexp, horizon, i18n_id_ID, pytorch, spm]
+    flags=[ HAS_CODE ALLOW_TASK_REPARENTING ALLOW_CLEAR_USER_DATA ALLOW_BACKUP KILL_AFTER_RESTORE LARGE_HEAP ]
+    pageSizeCompat=0
+        android.permission.POST_NOTIFICATIONS: granted=false, flags=[ USER_SET|USER_FIXED|USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]
+        android.permission.ACCESS_FINE_LOCATION: granted=false, flags=[ USER_SET|USER_FIXED|USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]
+        android.permission.ACCESS_LOCAL_NETWORK: granted=false, flags=[ USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]
+        android.permission.READ_PHONE_NUMBERS: granted=false, flags=[ USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]
+        android.permission.READ_MEDIA_VISUAL_USER_SELECTED: granted=true, flags=[ USER_SET|USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]
+        android.permission.NEARBY_WIFI_DEVICES: granted=false, flags=[ USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]
+        android.permission.BLUETOOTH_CONNECT: granted=false, flags=[ USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED]
+        android.permission.READ_EXTERNAL_STORAGE: granted=false, flags=[ REVOKE_WHEN_REQUESTED|USER_SENSITIVE_WHEN_GRANTED|USER_SENSITIVE_WHEN_DENIED|RESTRICTION_INSTALLER_EXEMPT|RESTRICTION_UPGRADE_EXEMPT]
+
+===== Storage (rerun with MSYS_NO_PATHCONV=1) =====
+Filesystem       Size Used Avail Use% Mounted on
+/dev/block/dm-97 219G 200G   19G  92% /data/user/0
+/dev/fuse        219G 200G   19G  92% /storage/emulated
+ro.product.first_api_level 35
+fw.max_users (empty)
