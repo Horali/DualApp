@@ -1,0 +1,20 @@
+# Engine update with compat patches 0004 + 0005 (owner approved, 2026-11-14)
+
+Build:    NewBlackbox 89b5983 + 0001 + 0004 + 0005, :app:assembleDebug (JBR 21, offline Gradle)
+APK:      BlackBox_4.0.0_arm64-v8a-debug.apk
+SHA-256:  caae03c0b10ed49345289e349f3fd0017f73644669ea51875a7545f828b8ace7
+Checked:  APK dex contains black.android.app.ActivityThreadS and IJobServiceProxy.indexOfJobInfo
+
+Install:  adb install -r (update in place, data kept) -> Success
+Package:  top.niunaijun.blackbox versionCode=400, lastUpdateTime=2026-11-14 02:26:31
+          Play Protect did not block this update.
+
+Smoke check (engine UI only, no guest launched):
+  MainActivity resumed ("User 0"), process alive
+  Existing clones still listed: DualApp Canary, Mobile Legends: Bang Bang
+  Crash buffer empty; no FATAL / AbstractMethodError in logcat
+  Screenshot taken (not committed)
+
+Not yet verified at runtime:
+  0004 -> T11 step 3 (guest JobScheduler / WorkManager job actually runs)
+  0005 -> kit case K9 (onNewIntent reaches an already-running guest activity)

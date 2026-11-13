@@ -52,7 +52,7 @@ Ranked by risk to our two target apps. "Crash" means an exception that kills the
 
 ## Patches written after T1 (2026-11-14)
 
-Both live in `phase0/engine/patches/`, next to 0001. They apply cleanly to a fresh `89b5983` checkout together with 0001, and `:Bcore:compileDebugJavaWithJavac` passes. They have not been built into an APK or installed; that needs your approval (T5 step 10).
+Both live in `phase0/engine/patches/`, next to 0001. They apply cleanly to a fresh `89b5983` checkout together with 0001, and `:Bcore:compileDebugJavaWithJavac` passes. With your approval they were built into the engine and installed on the phone as an update on 2026-11-14. The engine opens, the existing clones are kept and nothing crashed (`engine-update-0004-0005.txt`). Runtime proof of each fix is still pending (T11 step 3, K9).
 
 | Patch | Fixes | Change |
 |---|---|---|
