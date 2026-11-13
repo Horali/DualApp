@@ -18,3 +18,12 @@ Smoke check (engine UI only, no guest launched):
 Not yet verified at runtime:
   0004 -> T11 step 3 (guest JobScheduler / WorkManager job actually runs)
   0005 -> kit case K9 (onNewIntent reaches an already-running guest activity)
+
+Guest smoke check (owner said continue, 2026-11-14 02:31):
+  Launched the DualApp Canary clone from the engine (User 0): ProxyActivity$P0 resumed,
+  guest process dev.dualapp.canary running in the engine UID (u0_a57).
+  Home, then tapped the Canary icon again: the existing guest task came back (same
+  ActivityRecord). A plain relaunch brings the task forward without a new intent, so this
+  does not exercise 0005. No crash, no AbstractMethodError / NoSuchMethodError in logcat.
+  Runtime proof of 0004 / 0005 needs a guest that schedules a job and a singleTop activity
+  that receives a second intent: Canary v0.3 compat page (T12 kit, case K9) and T11 step 3.
