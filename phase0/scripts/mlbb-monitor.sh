@@ -20,6 +20,7 @@ intkb() { "$A" shell run-as top.niunaijun.blackbox du -sk $INT 2>/dev/null | tr 
 
 "$A" shell input keyevent KEYCODE_WAKEUP
 "$A" logcat -c
+"$A" logcat -b crash -c
 N0=$(netbytes); E0=$(extkb); I0=$(intkb)
 echo "t_s ext_MB int_MB net_rx_MB free" | tee "$OUT/log.txt"
 "$A" shell input tap 540 487
@@ -31,7 +32,10 @@ while [ $T -le $MAX_S ]; do
   printf '%s %s %s %s %s\n' $T $(( (${E:-0}-${E0:-0})/1024 )) $(( (${I:-0}-${I0:-0})/1024 )) $(( (N-N0)/1048576 )) $FREE | tee -a "$OUT/log.txt"
   "$A" exec-out screencap -p > "$OUT/t$T.png"
   if [ $(( (${E:-0}-${E0:-0})/1024 )) -ge $CAP_MB ]; then echo "CAP reached, stopping" | tee -a "$OUT/log.txt"; break; fi
-  "$A" shell pidof top.niunaijun.blackbox:p0 >/dev/null 2>&1 || { echo "guest process gone at ${T}s" | tee -a "$OUT/log.txt"; }
+  C=$("$A" logcat -d -b crash | tr -d '\r' | grep -c 'Abort message')
+' | grep -c 'Abort message')
+  echo "  crashes so far: $C" | tee -a "$OUT/log.txt"
+  if [ "${C:-0}" -ge 10 ]; then echo "crash loop, stopping" | tee -a "$OUT/log.txt"; break; fi
 done
 "$A" logcat -d | tr -d '\r' | grep -i -E 'mobile.legends|unity|FATAL|AndroidRuntime|blackbox' | grep -v -E 'SurfaceFlinger|setRequestedFrameRate|Freecess' | tail -200 > "$OUT/logcat.txt"
 "$A" shell am force-stop top.niunaijun.blackbox

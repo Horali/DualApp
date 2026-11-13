@@ -1,0 +1,17 @@
+MLBB 2.2.23.12351 inside NewBlackbox User 0, engine + patch 0001 (Android 17 IServiceConnection.connected overload),
+spoofing still on, no login. 2026-11-13.
+
+Result: RUNS. Zero crashes in 4 minutes (crash buffer empty). The game reached its "Create Character"
+screen (guest-account flow). Confirm was NOT tapped, so no game account was created.
+
+While idle on that screen, the game downloaded resources in the background (monitor log: log.txt):
+  t=30 s   +50 MB external,  26 MB received
+  t=255 s  +499 MB external, 482 MB received   (~1.9 MB/s; download still running when stopped)
+  guest internal data +6 MB
+All growth went into files/dragon2017 (guest 780 MB incl. first run's 258 MB).
+Host MLBB has 12.3 GB in files/dragon2017, so a full second copy would download about 12 GB
+and store about 12 GB again: that is the L2 and L1 opportunity for MLBB.
+
+Anti-cheat: no block, warning or exit seen up to the character screen (spoofing on, so this
+does not show how it treats an honest container). Gameplay, matchmaking and login untested.
+Engine force-stopped at the end. Guest MLBB data (~930 MB) remains inside the engine's folders.
