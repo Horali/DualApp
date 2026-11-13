@@ -1,0 +1,14 @@
+# Large or machine-specific
+phase0/.gradle-home/
+**/.gradle/
+**/build/
+**/local.properties
+*.apk
+*.aab
+
+# Upstream engine: not vendored. Re-create with phase0/engine/fetch-newblackbox.sh
+phase0/engine/NewBlackbox/
+
+# Phone screenshots show the owner's home screen and installed apps
+phase0/results/ui/
+phase0/results/*.png
