@@ -678,6 +678,19 @@ Whether to build M9 is a Phase 1 decision.
 
 **Output:** `t1-framework-diff-api37.txt`, `t1-mirror-check-api37.txt`, `t1-oem-additions-api37.txt`, `engine/api-baseline/api37-signatures.txt`, patches if needed
 
+**T1 result (2026-11-14, [`phase0b/results/t1/t1-summary.md`](phase0b/results/t1/t1-summary.md)):**
+
+- **No new crash source.** All 4 implemented interfaces match the phone, and Samsung added nothing abstract to them.
+- **Two silent bugs need patches** (not written yet):
+  1. `IJobServiceProxy` reads `args[0]`, which is now the JobScheduler namespace, so guest jobs and WorkManager probably never get scheduled. This gets **T11 step 3** and a compat patch.
+  2. `handleNewIntent` matches **none** of its forms. The phone only has `handleNewIntent(ActivityClientRecord, List)`. This gets kit case **K9** and a compat patch.
+- **Smaller gaps:**
+  - `SigningInfo` for guests with no host install;
+  - 3 `callActivityOnNewIntent` variants not forwarded by `Instrumentation`;
+  - the `setActivityLocusContext` cast;
+  - fake-location `onLocationChanged`.
+- **Samsung additions:** 2,858 phone-only methods, all classified: 0 crash, 924 pass-through on proxied services, the rest harmless.
+
 ### T2 Engine runtime audit (1 day)
 
 1. Clear logcat, start Canary in User 0, and collect lines from tags `VirtualSpoof`, `AntiDetection`, `NativeCore`, `HiddenAPI`, `GmsProxy`, `FileSystemHook`, `AntiVirtualDetect`. Record what installed and what failed.
