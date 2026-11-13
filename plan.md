@@ -2,10 +2,10 @@
 
 | | |
 |---|---|
-| **Document status** | Plan approved 2026-11-13. **Phase 0 (technical feasibility) in progress.** Phase 1 is not approved. |
+| **Document status** | Plan approved 2026-11-13. **Phase 0 complete (2026-11-13): NO-GO for Phase 1 as planned; a short Phase 0b is recommended.** See [Section 20.5](#205-phase-0-outcome) and `phase0/REPORT.md`. Phase 1 is not approved. |
 | **Date** | 2026-11-13 |
 | **Scope** | Research, feasibility analysis, architecture and roadmap. Phase 0 experiments live in `phase0/` only. |
-| **Primary device** | Samsung Galaxy S25+, **Android 17, One UI 9, ARM64 (confirmed by the owner)**. Build, patch, ART module, kernel and page size are recorded in [Section 20](#20-phase-0-findings) once read over ADB. |
+| **Primary device** | Samsung Galaxy S25+, **Android 17, One UI 9, ARM64 (confirmed by the owner)**. Build, patch, ART module, kernel and page size are recorded in [Section 20.2](#202-confirmed-device-specifications). |
 | **Deliverable rule** | No production DualApp code. Temporary Phase 0 prototypes, test apps and scripts are allowed in `phase0/` only. |
 
 ## How to read this document
@@ -963,7 +963,7 @@ None of Section 9 should be built until these are demonstrated on the S25+ (Phas
 
 | ID | Must be proven | Pass condition |
 |---|---|---|
-| **P1** | Symlinks can be created in host internal storage and are followed. `0444` blocks owner writes. | Works under the device's real SELinux policy. Write attempts get `EACCES`. |
+| **P1** | Symlinks can be created in host internal storage and are followed. `0444` blocks owner writes. **Phase 0 correction: symlinks work, but `0444` does NOT protect anything: the shared UID can `chmod` the blob and write to it (tested from real guests). Protection must come from engine hooks (M2).** | Works under the device's real SELinux policy. Write attempts get `EACCES`. |
 | **P2** | Engine path redirection covers Java file APIs, NIO, native `open`/`fopen`/`mmap`, SQLite in private dirs, and Unity/IL2CPP file access. | The Canary app's checks all pass. A Unity sample, or MLBB if G3 passes, loads assets. |
 | **P3** | Copy-up is correct for every open mode, `truncate`, `rename`, `unlink`, attribute changes and multi-process guests. | Storage conformance suite passes. The blob checksum is unchanged after every test. |
 | **P4** | Apps accept symlinked resource files. | Canary plus the real apps behave identically with and without the symlink farm. |
@@ -1590,32 +1590,6 @@ Live record of Phase 0. Every entry says what was tested, on which device, and w
 | 2026-11-13 | **Engine patch 0001** (owner approved): add the Android 17 `connected(ComponentName, IBinder, IBinderSession, boolean)` overload to `ServiceConnectionDelegate`, plus a compile-time `IBinderSession` AIDL stub. Compatibility only; spoofing code untouched. Stored as `phase0/engine/patches/0001-android17-iserviceconnection-connected.patch`, applied by `fetch-newblackbox.sh`. | **Fixed the crash loop.** MLBB then ran 4 min with zero crashes and reached its Create Character screen (Confirm not tapped, so no account). It downloaded ~1.9 MB/s in the background into `files/dragon2017` (+499 MB in 255 s, still going). Host MLBB holds 12.3 GB there, so **each extra MLBB instance would re-download and store about 12 GB**: the L1/L2 target. No anti-cheat block up to that screen (spoofing on). Details: `phase0/results/mlbb-patched/summary.txt`. |
 | 2026-11-13 | **L2 seeded test** (owner approved): copied the host MLBB `assets/img` folder (1.04 GB, 47,069 files, host only read) into the clone, then ran MLBB 4 min, no login | **Partial.** 300 sampled already-downloaded files were byte-identical to the host's, so MLBB assets are dedupable (L1 holds). During the run MLBB downloaded 318 MB of *other* files and left all 47,069 seeded files untouched (none rewritten or deleted). **Not proven: that the downloader skips seeded files**, because it never reached `img/` in 4 min and its queue files are binary. A full proof needs a 2-3 h run and more free space than the phone has. The index-mode A/B test cannot be done with MLBB (private binary index). Details: `phase0/results/mlbb-seeded/summary.txt`. |
 
-### 20.3 Development toolchain (PC)
-
-| Component | Version | Location |
-|---|---|---|
-| SDK command-line tools | 23.0 (`commandlinetools-win-16111833`, SHA-1 verified) | `%LOCALAPPDATA%\Android\Sdk\cmdline-tools\latest` |
-| Platform-tools (ADB) | 37.0.1 (adb 1.0.41) | `%LOCALAPPDATA%\Android\Sdk\platform-tools` |
-| SDK platforms | android-35, android-36, android-37.0 | SDK |
-| Build-tools | 35.0.0, 36.0.0 | SDK |
-| NDK | 29.0.13846066 (**a beta 3 release**, pinned by NewBlackbox) | SDK |
-| CMake | 3.22.1 | SDK |
-| JDK used for the build | Android Studio bundled JBR 21.0.6 (set per build only; no global change) | Android Studio |
-| Gradle | 8.14.5 via NewBlackbox's wrapper. No global install. Downloads kept in `phase0/.gradle-home` (about 1.2 GB) | `phase0/` |
-
-### 20.4 NewBlackbox engine assessment (pre-device)
-
-| Topic | Finding |
-|---|---|
-| Version | Commit `89b5983`, 58 commits, history starts 2025-08-16, last change 2026-07-19 |
-| Build | compileSdk 35, **targetSdk 28**, minSdk 21, NDK ndk-build, arm64 + armv7, 16 KB page alignment on the engine library |
-| APK | `top.niunaijun.blackbox` 4.0.0, 159 activity entries (mostly stubs), 322 requested permissions, one engine library `libblackbox.so` (346 KB) |
-| Opaque binaries | Dobby inline-hook library shipped only as prebuilt `libdobby.a`. Three prebuilt AARs in the demo app. JitPack used as a dependency repository. |
-| **Spoofing and anti-detection (default-on)** | Native constructors hide root, virtualization apps and emulator traces from guests, and spoof the device as a **Pixel 6 on Android 12** with a fake serial. Java hooks replace device ID, ANDROID_ID and telephony identifiers, fake GPS location, and **block guest apps from exiting when they detect the sandbox**. |
-| Consequence | Running the unmodified build applies all of the above to every guest app, which conflicts with the transparency principle (Section 13.8). |
-| **Owner decision (2026-11-13)** | **Keep the engine as shipped.** No patch, no stripping. On-device tests will run with spoofing and anti-detection active. Every result from those tests is labelled "upstream engine, spoofing on" so it is never read as a transparent-container result. This weakens the evidence for G3 (MLBB) and Instagram: a pass shows the apps tolerate a disguised container, not an honest one. Phone install is still not authorized. |
-| Early sustainability view | One maintainer, small history, an unauditable prebuilt hook library, an old target SDK, and anti-detection woven into the core. Removing it is feasible (it is concentrated in about 10 files), but every upstream update would need re-review. Final judgment waits for on-device results. |
-
 ### 20.2 Confirmed device specifications
 
 | Item | Value | Source |
@@ -1642,3 +1616,44 @@ Live record of Phase 0. Every entry says what was tested, on which device, and w
 | Instagram | 455.0.0.51.72, targetSdk 37, arm64, base + 9 splits | ADB metadata only |
 
 Raw output: `phase0/results/baseline-20261113-132942.txt`. The script's storage section first failed (Git Bash path rewriting); fixed with `MSYS_NO_PATHCONV=1` and re-read.
+
+### 20.3 Development toolchain (PC)
+
+| Component | Version | Location |
+|---|---|---|
+| SDK command-line tools | 23.0 (`commandlinetools-win-16111833`, SHA-1 verified) | `%LOCALAPPDATA%\Android\Sdk\cmdline-tools\latest` |
+| Platform-tools (ADB) | 37.0.1 (adb 1.0.41) | `%LOCALAPPDATA%\Android\Sdk\platform-tools` |
+| SDK platforms | android-35, android-36, android-37.0 | SDK |
+| Build-tools | 35.0.0, 36.0.0 | SDK |
+| NDK | 29.0.13846066 (**a beta 3 release**, pinned by NewBlackbox) | SDK |
+| CMake | 3.22.1 | SDK |
+| JDK used for the build | Android Studio bundled JBR 21.0.6 (set per build only; no global change) | Android Studio |
+| Gradle | 8.14.5 via NewBlackbox's wrapper. No global install. Downloads kept in `phase0/.gradle-home` (about 1.2 GB) | `phase0/` |
+
+### 20.4 NewBlackbox engine assessment (pre-device)
+
+| Topic | Finding |
+|---|---|
+| Version | Commit `89b5983`, 58 commits, history starts 2025-08-16, last change 2026-07-19 |
+| Build | compileSdk 35, **targetSdk 28**, minSdk 21, NDK ndk-build, arm64 + armv7, 16 KB page alignment on the engine library |
+| APK | `top.niunaijun.blackbox` 4.0.0, 159 activity entries (mostly stubs), 322 requested permissions, one engine library `libblackbox.so` (346 KB) |
+| Opaque binaries | Dobby inline-hook library shipped only as prebuilt `libdobby.a`. Three prebuilt AARs in the demo app. JitPack used as a dependency repository. |
+| **Spoofing and anti-detection (default-on)** | Native constructors hide root, virtualization apps and emulator traces from guests, and spoof the device as a **Pixel 6 on Android 12** with a fake serial. Java hooks replace device ID, ANDROID_ID and telephony identifiers, fake GPS location, and **block guest apps from exiting when they detect the sandbox**. |
+| Consequence | Running the unmodified build applies all of the above to every guest app, which conflicts with the transparency principle (Section 13.8). |
+| **Owner decision (2026-11-13)** | **Keep the engine as shipped.** No patch, no stripping. On-device tests will run with spoofing and anti-detection active. Every result from those tests is labelled "upstream engine, spoofing on" so it is never read as a transparent-container result. This weakens the evidence for G3 (MLBB) and Instagram: a pass shows the apps tolerate a disguised container, not an honest one. Later the same day the owner approved installing it on the phone and approved **patch 0001** (Android 17 compatibility only; spoofing code untouched). |
+| Early sustainability view | One maintainer, small history, an unauditable prebuilt hook library, an old target SDK, and anti-detection woven into the core. Removing it is feasible (it is concentrated in about 10 files), but every upstream update would need re-review. Final judgment waits for on-device results. |
+
+### 20.5 Phase 0 outcome
+
+Full report: `phase0/REPORT.md`. Summary:
+
+| Gate | Verdict |
+|---|---|
+| G1 engine runs on the S25+ | **Pass, with patch 0001** (unmodified NewBlackbox crashes any guest that binds a service on Android 17) |
+| G2 symlink CoW storage | **Fail as designed.** No kernel CoW; `0444` bypassable by `chmod` under the shared UID. Needs M2 hook-level copy-up, not yet built |
+| G3 MLBB in container | **Partial.** Runs to Create Character, no refusal, but spoofing on and no login |
+| G4 MLBB L1/L2 | **Partial.** Assets byte-identical across instances (L1 viable, ~12 GB per extra copy). L2 unproven |
+| G5 Instagram login persists | **Untested** |
+
+**Decision: NO-GO for Phase 1 as planned.** Recommended Phase 0b: (1) engine decision (maintained NewBlackbox patch set vs another engine, and what to do about its spoofing); (2) M2 prototype that defeats the `chmod` attack; (3) synthetic L2 test P5 in both index modes; (4) Instagram G5 with a throwaway account, if approved; (5) optional long MLBB L2 run when ~15 GB more is free.
+
