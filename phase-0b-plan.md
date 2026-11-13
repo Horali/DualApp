@@ -681,7 +681,7 @@ Whether to build M9 is a Phase 1 decision.
 **T1 result (2026-11-14, [`phase0b/results/t1/t1-summary.md`](phase0b/results/t1/t1-summary.md)):**
 
 - **No new crash source.** All 4 implemented interfaces match the phone, and Samsung added nothing abstract to them.
-- **Two silent bugs need patches** (not written yet):
+- **Two silent bugs, now patched** (`phase0/engine/patches/0004-compat-jobscheduler-namespace.patch` and `0005-compat-handle-new-intent-api31.patch`; compiled on the PC, not installed):
   1. `IJobServiceProxy` reads `args[0]`, which is now the JobScheduler namespace, so guest jobs and WorkManager probably never get scheduled. This gets **T11 step 3** and a compat patch.
   2. `handleNewIntent` matches **none** of its forms. The phone only has `handleNewIntent(ActivityClientRecord, List)`. This gets kit case **K9** and a compat patch.
 - **Smaller gaps:**

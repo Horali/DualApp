@@ -20,9 +20,9 @@ It also found a few smaller silent gaps. Nothing in this list stops MLBB from st
 | Plan criterion (Section 7) | Expected | Result | Pass? |
 |---|---|---|---|
 | Unimplemented methods in engine-implemented framework interfaces | 1 known + 0–3 more | **0 left** (4 interfaces checked) | **Pass** |
-| Changed parameter lists behind proxies; missing mirror members | a few | 2 proxy mismatches + 4 mirror gaps that matter; the rest are dead code for old Android versions. All explained (below). The two that need code are **not patched yet** (this run was told not to write patches). | **Open** until the patches exist |
+| Changed parameter lists behind proxies; missing mirror members | a few | 2 proxy mismatches + 4 mirror gaps that matter; the rest are dead code for old Android versions. All explained (below). The two that need code now have patches 0004 and 0005 (compiled on the PC, not yet installed). | **Patched**, runtime check pending (T11 step 3, K9) |
 | Samsung / One UI additions in watched types | a few, e.g. `handleCoreStatesChanged(Bundle)` | 2,858 phone-only methods, every one classified; **0 crash**, 0 silent, 924 pass-through, 1,934 harmless | **Pass** (none abstract on an engine-implemented type) |
-| Engine `handleNewIntent` form matching the phone | none | **none matches** (confirmed) | Recorded; the compatibility patch is still to write (K9) |
+| Engine `handleNewIntent` form matching the phone | none | **none matches** (confirmed) | Recorded; patch 0005 written, K9 still to run |
 
 ## Ranked list: what would need patching
 
@@ -49,6 +49,17 @@ Ranked by risk to our two target apps. "Crash" means an exception that kills the
 **Local AIDL copies (Section B):** 14 of 24 differ from the phone. Examples: `IJobService` has 3 new methods, `IJobCallback` 6, `IPackageInstallerSession` 25; `IPackageInstallerSession.commit` changed; `ISyncAdapter.initialize` was removed; and the Samsung `IWallpaperManagerCallback.onSem*` methods are new. **None of these matter today.** The engine never implements those Stubs and never calls the changed methods. At runtime the phone's own copy of each class wins, so transaction codes stay correct.
 
 **`ClientTransactionHandler`:** the phone does have Samsung's abstract `handleCoreStatesChanged(Bundle)` (BLOCKED hidden API), confirming lead N4 on our firmware. NewBlackbox doesn't subclass `ClientTransactionHandler`, so for us it is **harmless**.
+
+## Patches written after T1 (2026-11-14)
+
+Both live in `phase0/engine/patches/`, next to 0001. They apply cleanly to a fresh `89b5983` checkout together with 0001, and `:Bcore:compileDebugJavaWithJavac` passes. They have not been built into an APK or installed; that needs your approval (T5 step 10).
+
+| Patch | Fixes | Change |
+|---|---|---|
+| `0004-compat-jobscheduler-namespace.patch` | Row 1 | `schedule` / `enqueue` find the `JobInfo` by type instead of `args[0]`; `cancel` takes the job id from the last argument. Removes the dead "WorkManager string ID" branch, which was really the namespace. Still works on Android 13 and older (no namespace). |
+| `0005-compat-handle-new-intent-api31.patch` | Row 2 | New mirror `ActivityThreadS.handleNewIntent(ActivityClientRecord, List)`. `BActivityThread.handleNewIntent` tries it 4th: it looks up the record with `getActivityClient(token)` and logs a warning instead of silently dropping the intent. |
+
+Rows 3–5 are not patched (low impact for MLBB / Instagram).
 
 ## OEM (Samsung / One UI) additions
 
