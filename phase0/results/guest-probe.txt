@@ -1,0 +1,21 @@
+--- guest User 0
+probe.target=/data/user/0/top.niunaijun.blackbox/blackbox/data/user/0/dev.dualapp.canary/files/shared.bin len=1048576
+probe.hashBefore=7e7e11eb1a486997
+probe.writeAsIs=DENIED
+probe.chmod0644=ALLOWED
+probe.writeAfterChmod=ALLOWED
+probe.hashAfter=4788853d6f69f48c
+probe.hashRestored=7e7e11eb1a486997
+SUMMARY id=74d0626c run=4 consistent=true prefs=3 db=3 int=3 ext=3
+--- guest User 1
+probe.target=/data/user/0/top.niunaijun.blackbox/blackbox/data/user/1/dev.dualapp.canary/files/shared.bin len=1048576
+probe.hashBefore=7e7e11eb1a486997
+probe.writeAsIs=DENIED
+probe.chmod0644=ALLOWED
+probe.writeAfterChmod=ALLOWED
+probe.hashAfter=4788853d6f69f48c
+probe.hashRestored=7e7e11eb1a486997
+SUMMARY id=9180c35e run=4 consistent=true prefs=3 db=3 int=3 ext=3
+--- process contexts
+u:r:untrusted_app_27:s0:c57,c256,c512,c768 u:r:untrusted_app_27:s0:c57,c256,c512,c768 u0_a57 29317 top.niunaijun.blackbox
+u:r:untrusted_app_27:s0:c57,c256,c512,c768 u:r:untrusted_app_27:s0:c57,c256,c512,c768 u0_a57 30216 top.niunaijun.blackbox:black

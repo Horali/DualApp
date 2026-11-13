@@ -1,0 +1,21 @@
+Canary performance, host vs NewBlackbox guest (unmodified upstream, spoofing on), 2026-11-13, SM-S936B Android 17
+
+Cold start (ActivityTaskManager "Displayed")
+  host Canary, 5 runs after force-stop:              110, 118, 112, 112, 116 ms  (median 112)
+  guest Canary User 0, 3 runs after engine force-stop: 94, 90, 99 ms              (median 94)
+  Caveat: the guest figure is the engine's ProxyActivity draw time after the engine UI was
+  already open; it excludes engine start-up. Treat as "no visible penalty for a tiny app",
+  not as "guests start faster".
+
+Memory (dumpsys meminfo, TOTAL PSS)
+  host Canary                              70.7 MB
+  guest Canary (process top.niunaijun.blackbox:p0, shown in ps as dev.dualapp.canary)  95.6 MB  (+35 %)
+  engine UI process top.niunaijun.blackbox                                              144.7 MB
+  engine service process :black                                                          38.8 MB
+  => one guest instance with the engine UI open costs about 279 MB vs 71 MB native.
+     Without the engine UI in memory: about 134 MB (guest + :black).
+
+Other observations
+  The engine renames its guest process to the guest package name (ps shows dev.dualapp.canary under u0_a57).
+  The engine runs its own logcat process under its UID.
+  Guest processes run in SELinux domain untrusted_app_27 (from the engine's targetSdk 28).
