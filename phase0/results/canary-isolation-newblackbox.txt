@@ -25,4 +25,9 @@ Observations
   SystemProperties lookups and native code).
   All guest data lives inside BlackBox's own data dir, so uninstalling BlackBox deletes every instance.
 
-Reboot test: pending.
+After adb reboot (owner approved) and owner unlock
+  BB user 0  id=74d0626c run=3 consistent=true prefs=2 db=2 int=2 ext=2
+  BB user 1  id=9180c35e run=3 consistent=true prefs=2 db=2 int=2 ext=2
+  host       id=1d163fe9 run=5 consistent=true prefs=4 db=4 int=4 ext=4
+
+Result: PASS. Separate state per instance; persists across engine force-stop and device reboot.
