@@ -1,0 +1,52 @@
+diff --git a/Bcore/src/main/java/black/android/app/ActivityThreadS.java b/Bcore/src/main/java/black/android/app/ActivityThreadS.java
+new file mode 100644
+index 0000000..e016ba0
+--- /dev/null
++++ b/Bcore/src/main/java/black/android/app/ActivityThreadS.java
+@@ -0,0 +1,17 @@
++package black.android.app;
++
++import java.util.List;
++
++import top.niunaijun.blackreflection.annotation.BClassName;
++import top.niunaijun.blackreflection.annotation.BMethod;
++import top.niunaijun.blackreflection.annotation.BParamClassName;
++
++/**
++ * DualApp compat 0005: Android 12+ (API 31) form of ActivityThread.handleNewIntent,
++ * which takes the ActivityClientRecord instead of the activity token.
++ */
++@BClassName("android.app.ActivityThread")
++public interface ActivityThreadS {
++    @BMethod
++    void handleNewIntent(@BParamClassName("android.app.ActivityThread$ActivityClientRecord") Object r, List intents);
++}
+diff --git a/Bcore/src/main/java/top/niunaijun/blackbox/app/BActivityThread.java b/Bcore/src/main/java/top/niunaijun/blackbox/app/BActivityThread.java
+index 61b9d7f..00966c3 100644
+--- a/Bcore/src/main/java/top/niunaijun/blackbox/app/BActivityThread.java
++++ b/Bcore/src/main/java/top/niunaijun/blackbox/app/BActivityThread.java
+@@ -49,6 +49,7 @@ import black.android.app.BRActivityThreadActivityClientRecord;
+ import black.android.app.BRActivityThreadAppBindData;
+ import black.android.app.BRActivityThreadNMR1;
+ import black.android.app.BRActivityThreadQ;
++import black.android.app.BRActivityThreadS;
+ import black.android.app.BRContextImpl;
+ import black.android.app.BRLoadedApk;
+ import black.android.app.BRService;
+@@ -1140,6 +1141,16 @@ public class BActivityThread extends IBActivityThread.Stub {
+                         true);
+             } else if (BRActivityThreadQ.get(mainThread)._check_handleNewIntent(null, null) != null) {
+                 BRActivityThreadQ.get(mainThread).handleNewIntent(token, Collections.singletonList(newIntent));
++            } else if (BRActivityThreadS.get(mainThread)._check_handleNewIntent(null, null) != null) {
++                // DualApp compat 0005: Android 12+ takes the ActivityClientRecord.
++                Object record = BRActivityThread.get(mainThread).getActivityClient(token);
++                if (record != null) {
++                    BRActivityThreadS.get(mainThread).handleNewIntent(record, Collections.singletonList(newIntent));
++                } else {
++                    Slog.w(TAG, "handleNewIntent: no ActivityClientRecord for token, intent dropped");
++                }
++            } else {
++                Slog.w(TAG, "handleNewIntent: no known ActivityThread form, intent dropped");
+             }
+         });
+     }
