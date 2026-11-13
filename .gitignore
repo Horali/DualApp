@@ -12,3 +12,6 @@ phase0/engine/NewBlackbox/
 # Phone screenshots show the owner's home screen and installed apps
 phase0/results/ui/
 phase0/results/**/*.png
+
+# Phase 0b scratch: pulled phone jars and dex dumps (Google/Samsung binaries)
+phase0b/work/
