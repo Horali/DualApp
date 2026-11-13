@@ -2,7 +2,7 @@
 
 Date: 2026-11-13. Device: Samsung Galaxy S25+ (SM-S936B), Android 17 (API 37), One UI 9.
 
-**Status: plan only.** Nothing in this document has been built or run yet. It follows the Phase 0 NO-GO in [`phase0/REPORT.md`](phase0/REPORT.md) and builds on the storage design in [`plan.md`](plan.md) Section 9.
+**Status: plan only.** Nothing in this document has been built or run yet. Updated 2026-11-14 with six leads from another team's MLBB container notes (Section 2.1). It follows the Phase 0 NO-GO in [`phase0/REPORT.md`](phase0/REPORT.md) and builds on the storage design in [`plan.md`](plan.md) Section 9.
 
 **Evidence labels**
 
@@ -12,6 +12,7 @@ Date: 2026-11-13. Device: Samsung Galaxy S25+ (SM-S936B), Android 17 (API 37), O
 | **[Audit]** | Read in the NewBlackbox source (commit `89b5983` plus patch 0001) for this plan |
 | **[Design]** | Proposed in this plan |
 | **[Hypothesis]** | Believed but not checked; a task below checks it |
+| **[Lead]** | Reported in another team's notes (a rooted VirtualApp fork running MLBB on Android 14). A strong lead, not verified on our phone or engine (Section 2.1). |
 
 **Words used**
 
@@ -53,6 +54,15 @@ Phase 0b is a short, measured follow-up that decides whether Phase 1 can start. 
   - All clones share one Android Keystore, so two clones of the same app can overwrite each other's keys.
   - Push registrations go out under the engine's identity.
   - Both matter for Instagram.
+
+**Leads from another team** (added 2026-11-14, Section 2.1). Notes from a rooted VirtualApp fork running MLBB on Android 14 point to six MLBB-specific traps:
+
+- MLBB caches **absolute paths** in its private preferences, so copying one instance's metadata into another would plant the wrong paths. Index mode M-c now needs path rewriting or is dropped.
+- **Login data** sits inside `files/dragon2017/`, the folder we plan to share. It gets a hard exclude.
+- MLBB **unpacks** payloads from its APK separately from downloading. T10 measures "skips unpack" and "skips download" separately.
+- A **Samsung-added** framework method crashed their engine the way Android 17 crashed ours. T1 now scans OEM additions too, and our audit found a matching silent `handleNewIntent` bug in NewBlackbox.
+- **Swipe from Recents, then relaunch**, started two game engines and then crashed. T10 adds that lifecycle test.
+- **Device-identity files** must stay private per instance. This links to ban risk and to the engine's shared `ANDROID_ID`.
 
 **The proposed storage design** (Section 4) changes the Phase 0 design in one key way: **instances never get a filesystem path to a shared blob.**
 
@@ -112,6 +122,19 @@ With 16–17 GB free on this phone, "share only after re-downloading 12 GB" (L1 
 | F20 | MLBB network was measured device-wide (`/proc/net/dev`) | [Measured] method | T0/T10 add per-UID counters so other apps don't pollute the numbers. |
 
 **Not repeated in Phase 0b:** the isolation suite (F1), the hard-link, chattr and fs-verity checks (F4), Canary performance (F17), the 300-file identity sample (F9), and reproducing the Android 17 `IServiceConnection` crash (F14).
+
+### 2.1 Leads from another team's MLBB container notes [Lead]
+
+Another team ran MLBB in a **rooted** VirtualApp fork on **Android 14**. Their setup differs from ours (root, a different engine, older Android), so each point below is a strong lead to check, not a fact about our phone. You approved adding them on 2026-11-14.
+
+| # | Lead | Why it matters to us | Where this plan uses it |
+|---|---|---|---|
+| N1 | MLBB stores **absolute paths** in its private preferences: `__SharedPreference__.xml` keys `__Extracted_PersistentFilesPath__`, `__SDKOverrideAssetsPath__` and `moba_loading_bg`, plus encoded Unity PlayerPrefs values `IphonePath` and `RWPathRec`. After their container was renamed, the game logged the mismatch but kept using the cached old path. It surfaced as a misleading "Not enough space" error (SevenZip ErrorCode 1804 = `ENOENT`). | Each NewBlackbox instance's paths contain its user number (`.../storage/emulated/<N>/...`). Copying A's metadata or preferences into B would plant A's paths in B. That means wrong-path failures or, worse, **B writing into A's tree**. All instances share one UID, so the kernel would allow it, and isolation would break silently. Moving guest data later (the T3 internal-storage fallback) would break existing instances the same way. | T3 decision, T4 step 7 (path scan), T10 steps 8 and 10 (M-b/M-c need path rewriting or are dropped), Section 7, risks 25–26 |
+| N2 | Login data lives in `files/dragon2017/login_data/` (`login_auth_cache`, the `login_auth_md5` pair, `native_login`, `check_upgrade_cache`), **inside** the folder we plan to share. | The share list only includes `assets/**`, but a broadened glob or a harvest bug could still pool login data. | T4 step 8, the Sharing Profile hard exclude `files/dragon2017/login_data/**` (also enforced inside `dualfs-tool harvest`), Section 7 |
+| N3 | MLBB has a separate **unpack** step: it extracts `Resources*.dat` / `libResources0.so` payloads from its APK with 7-Zip, before or alongside the CDN download. The preferences `__Extracted_UUID__`, `__First_Start_After_Extracted__` and `__Resources_UnzipTimestamp__` decide whether it re-extracts. | "Skips download" and "skips unpack" are different results. A fresh instance may skip downloads but still unpack, which costs time and disk but no network. | T4 step 9, T10 step 8 (two separate outcomes), Section 7 |
+| N4 | A **Samsung-specific** `AbstractMethodError` on `ClientTransactionHandler.handleCoreStatesChanged(Bundle)` (the same bug class as our patch 0001), and an Android 12+ `handleNewIntent` failure to find the `ActivityClientRecord`. | Our audit found a twin of the second: NewBlackbox's `BActivityThread.handleNewIntent` (line 1122) only knows the pre-Android-12 reflection forms, so on Android 17 it probably drops new intents silently [Audit + Hypothesis]. OEM-added methods never show up in an AOSP diff. | Section 3.8, T1 steps 3–4, T12 kit case K9, Section 7, risk 27 |
+| N5 | After **swipe from Recents → relaunch**, their container started two Unity players: two `MobaGameUnityActivity` requests about 1 s apart, each creating a new task. Then came a native deadlock or a Scudo crash in `libnativelogin.so`. Their fix is unverified. | This is an ordinary user action that could crash MLBB in our engine too. It may be linked to the dropped new intent above. | T10 step 14 (Recents test), Section 7, G3b, risk 28 |
+| N6 | Per-device **identity files** must stay private per instance: `files/.DNA_`, `.DNA_FLAG`, `.gp_uuid`, `INSTALLATION`, `AdjustAttribution`, `__app_uuid__`, and the preferences `snssdk_openudid.xml`, `DeviceSettings.xml` and `Cdid.xml`. | Shared or copied identity files would make two accounts look like one device install, which is a ban-risk signal. It also links to two engine findings: all clones probably read the engine's single `ANDROID_ID` (Section 3.4), and VirtualSpoof shows an inconsistent device (Section 3.7). | T2 step 2 (`ANDROID_ID` per instance), T4 step 8, T10 step 8, Section 7, risk 29 |
 
 ---
 
@@ -203,6 +226,7 @@ Entry point: `BPackageManagerService.installPackageAsUser(file, option, userId)`
 | Real `Build.*` (Java) | Not changed. Guests see SM-S936B / Android 17. | [Measured] |
 | **Android Keystore** | **No virtualization at all** (no reference in the source). Every instance uses the engine UID's Keystore, so key aliases from two clones of the same app collide. | Missing (T11 step 9) |
 | **Push (FCM / C2DM)** | **No handling.** [Hypothesis] Registrations carry the engine's package identity, so push to a clone probably fails or lands elsewhere. | Missing (T11 step 7) |
+| **`ANDROID_ID`** | `AndroidIdProxy` is inactive and nothing else handles `android_id` [Audit]. Since Android 8, `ANDROID_ID` depends on the app's signing key and user. So [Hypothesis] every clone reads the **engine's** value: the same for all instances, and different from your real MLBB's. Two accounts on one ID is a ban-risk link (Section 2.1, N6). | Missing (T2 step 2 checks) |
 
 ### 3.5 Filesystem virtualization [Audit]
 
@@ -321,6 +345,9 @@ One optional experiment (T2 step 6, **only with your approval**) builds a separa
 - **The `setHiddenApiExemptions` symbol name** in libart.
 - **The targetSdk-28 install floor** (Section 3.3).
 - **Branch protection (BTI/PAC)** in system libraries can break inline hooks (Section 3.6).
+- **New intents on Android 12+** [Audit]: `BActivityThread.handleNewIntent` (line 1122) tries three reflection forms: `performNewIntents(IBinder, List)`, `performNewIntents(IBinder, List, boolean)` and Android 10's `handleNewIntent(IBinder, List)`. Since Android 12 the framework method takes an `ActivityClientRecord` instead of an `IBinder`. So none of the three match, and the call **silently does nothing** [Hypothesis until T1 and kit case K9]. A guest activity brought back while still running would then never receive `onNewIntent`. The other team hit the same failure (Section 2.1, N4).
+- **Framework classes the engine extends:** `BaseInstrumentationDelegate` / `AppInstrumentation` extend `android.app.Instrumentation`. A method that Android or Samsung adds to `Instrumentation` is not forwarded to the wrapped original, so it silently falls back to default behavior.
+- **OEM (Samsung) additions** to hidden framework classes and interfaces. These never appear in AOSP. The other team's `ClientTransactionHandler.handleCoreStatesChanged(Bundle)` crash is one example (N4). NewBlackbox doesn't subclass `ClientTransactionHandler` (it only mirrors it for reflection), but every engine class that extends or implements a framework type is exposed to the same kind of change.
 
 ### 3.9 Maintainability and upstream dependencies [Audit]
 
@@ -637,15 +664,19 @@ Whether to build M9 is a Phase 1 decision.
    - **(A)** the four framework interfaces the engine **implements** (Section 3.8 table);
    - **(B)** the 24 local AIDL copies;
    - **(C)** the interfaces behind the ~75 dynamic proxies (`IActivityManager`, `IActivityTaskManager`, `IPackageManager`, `IApplicationThread`, ...);
-   - **(D)** every class, method and field named in the 220 `@BClassName` / `@BMethod` / `@BField` mirrors.
+   - **(D)** every class, method and field named in the 220 `@BClassName` / `@BMethod` / `@BField` mirrors;
+   - **(E)** framework **classes** the engine extends or drives by reflection: `android.app.Instrumentation` (through `BaseInstrumentationDelegate` / `AppInstrumentation`), `ActivityThread` and `ClientTransactionHandler` (Section 2.1, N4).
 4. Compare with the phone:
    - **(A)** any interface method the engine doesn't implement = **crash risk** (`AbstractMethodError`) → needs a patch;
    - **(B, C)** any parameter list that differs from the engine's assumption = silent misbehavior → reviewed one by one;
-   - **(D)** any missing class, method or field.
+   - **(D)** any missing class, method or field;
+   - **(E)** any method added to an extended class that the engine doesn't override, because it is silently not forwarded;
+   - **OEM scan** (N4): for every type in (A)–(E), list the phone's methods that are **not** in the AOSP copy of that type (fetched from `android.googlesource.com`, as was done for this plan). These are Samsung / One UI additions, for example `handleCoreStatesChanged(Bundle)` or `sem*` methods. Classify each as a crash risk (abstract, not implemented), a silent-misbehavior risk, or harmless;
+   - **`handleNewIntent`:** record the phone's `ActivityThread.handleNewIntent` signature and which of the engine's three reflection forms (Section 3.8) matches it. Expected: none. If none matches, write a compatibility patch, tested by kit case K9.
 5. Save the extracted signatures as the **API 37 baseline** (text we generate; reused by T12).
 6. Write one numbered patch per real (A) gap, in the T12 format. Building and installing them waits for your approval (T5 step 10 bundles them).
 
-**Output:** `t1-framework-diff-api37.txt`, `t1-mirror-check-api37.txt`, `engine/api-baseline/api37-signatures.txt`, patches if needed
+**Output:** `t1-framework-diff-api37.txt`, `t1-mirror-check-api37.txt`, `t1-oem-additions-api37.txt`, `engine/api-baseline/api37-signatures.txt`, patches if needed
 
 ### T2 Engine runtime audit (1 day)
 
@@ -654,9 +685,10 @@ Whether to build M9 is a Phase 1 decision.
    - old `__system_property_get("ro.product.model")` and the fingerprint;
    - modern `__system_property_find` / `__system_property_read_callback`;
    - Java `Build.MODEL` / `Build.FINGERPRINT`;
-   - `getprop` run in a child process.
+   - `getprop` run in a child process;
+   - `Settings.Secure.ANDROID_ID`, compared between Users 0 and 1 and with the normally installed Canary (identity link, Section 2.1 N6). Values are compared, not published.
 
-   This shows exactly which readers see the Pixel 6 values.
+   This shows exactly which readers see the Pixel 6 values, and whether all instances share one `ANDROID_ID`.
 3. **Hard-coded-path escape test** (Canary JNI; needs your approval):
    - `open("/data/data/dev.dualapp.canary/files/x")`: expected to be denied;
    - create, write, read back and **immediately delete** `/sdcard/Download/.dualapp-escape-test`: shows whether native hard-coded `/sdcard` paths escape the container. That 1-byte temp file is the only thing touched outside the engine.
@@ -697,6 +729,8 @@ Run under the engine UID via `run-as` (domain `runas_app`), and repeat the key c
 - tag storage (xattr or index);
 - pool location (external or internal);
 - whether MLBB's guest external data would have to move to internal storage. That would be a change to engine behavior; it is documented in T13 and needs your approval.
+  - Moving it would also break every existing instance's **cached absolute paths** (Section 2.1, N1).
+  - So it may only apply to newly created instances, unless a path-rewrite step is first proven safe using the T4 step 7 scan.
 
 **Clean-up:** delete the probe folders. **Output:** `phase0b/scripts/fs-probe.sh`, `t3-fs-probe.txt` with the decision table
 
@@ -719,10 +753,25 @@ Your MLBB and clone A are only read, except step 6, which runs clone A.
    - `onceflag.dat`, `module_nouse_time`, `module_remove_time`, `loadres_skin_version.dat`
    - `game_data_30028189`, `last_mode_check_state`, `_extractor_`, `_finish`
 6. **Mutable files:** hash A's whole tree, run A for 4 minutes (no login), hash again. Files that changed without being newly downloaded are **mutable → private**. A may download more files during this run; that is recorded.
+7. **Absolute-path scan** (Section 2.1, N1; read via `run-as`). Search clone A's private storage and every metadata file from step 5 for absolute paths. Private storage means `shared_prefs/`, including `__SharedPreference__.xml` and the Unity PlayerPrefs file. Look for:
+   - plain strings starting with `/storage/`, `/sdcard/` or `/data/`;
+   - decoded PlayerPrefs values (URL- or Base64-encoded), especially `IphonePath` and `RWPathRec`, and the keys `__Extracted_PersistentFilesPath__`, `__SDKOverrideAssetsPath__` and `moba_loading_bg`.
+
+   For each one, record the file, key, value and whether it names A's own instance root (`.../emulated/0/...`, `.../data/user/0/...`). Your real MLBB's preferences can't be read (it isn't debuggable), so this compares clones only. The same scan is re-run on every new instance in T10.
+8. **Login and identity files** (N2, N6). List names and sizes only; never read or print contents:
+   - `files/dragon2017/login_data/` (`login_auth_cache`, `login_auth_md5`, `native_login`, `check_upgrade_cache`), on your MLBB (read-only) and on A;
+   - the identity files `files/.DNA_`, `.DNA_FLAG`, `.gp_uuid`, `INSTALLATION`, `AdjustAttribution`, `__app_uuid__`;
+   - the preferences `snssdk_openudid.xml`, `DeviceSettings.xml` and `Cdid.xml` in A's internal storage.
+
+   Record which side of the internal/external split each one lives on.
+9. **Unpack payloads** (N3):
+   - list the APK contents to find the `Resources*.dat` and `libResources0.so` payloads, with toybox `unzip -l` on the phone if available; otherwise pull the APK splits into a PC scratch folder (read-only, never committed);
+   - find where their extracted output lands in A's tree, by name and by matching sizes and times against the extraction preferences (`__Extracted_UUID__`, `__First_Start_After_Extracted__`, `__Resources_UnzipTimestamp__`);
+   - check whether the extracted files are byte-identical between your MLBB and A (shareable candidates), and whether any of them is an ELF file (then private).
 
 **First classification** (from Phase 0 sizes; T4 confirms or corrects):
 
-| Path under `files/dragon2017/assets/` | Host size | Class | Reason |
+| Path (under `files/dragon2017/assets/` unless shown in full) | Host size | Class | Reason |
 |---|---|---|---|
 | `Art` | 8.76 GB | Shareable | Asset bundles; byte-identical sample [Measured] |
 | `Audio` | 1.15 GB | Shareable | Audio banks |
@@ -735,8 +784,31 @@ Your MLBB and clone A are only read, except step 6, which runs clone A.
 | `Scenes`, `Video`, `AstcInPack`, `VeryHighInPack`, `TextAsset`, `UnityData_NEW`, `RawImg`, `AStarPath` | rest | Shareable if `UnityFS`/data and identical | |
 | All metadata files (step 5 list) | small | **Private** | Download state, settings, IDs. Never copied (plan.md 3.1-A) unless T10's index modes are approved. |
 | `_finish`, `_extractor_` | tiny | **Private** | Markers. [Hypothesis] `_finish` marks "download complete": the host has it, A does not. |
+| `files/dragon2017/login_data/**` | small | **Private, hard exclude** | Login data inside the shared folder [Lead N2]. Excluded even though the include list is only `assets/**`. |
+| Extracted APK payloads (output of `Resources*.dat`; `libResources0.so`) | T4 step 9 | Shareable only if identical **and** not ELF | Derived from the same APK in every instance [Lead N3] |
+| Identity files `files/.DNA_`, `.DNA_FLAG`, `.gp_uuid`, `INSTALLATION`, `AdjustAttribution`, `__app_uuid__`; preferences `snssdk_openudid.xml`, `DeviceSettings.xml`, `Cdid.xml` | tiny | **Private, never copied in any mode** | Per-device / per-install identity [Lead N6]. Shared or copied, they would link accounts. |
 
-**Output:** `phase0b/scripts/mlbb-inventory.sh`, `t4-mlbb-inventory.txt`, `t4-size-histogram.txt`, `t4-classification.md`, `t4-download-order-A.txt`, draft `mlbb-sharing-profile.json`
+**Draft MLBB Sharing Profile** (T4 fills in the real lists):
+
+```json
+{
+  "package": "com.mobile.legends",
+  "includeGlobs": ["files/dragon2017/assets/**"],
+  "excludeGlobs": [
+    "files/dragon2017/login_data/**",
+    "files/dragon2017/assets/comlibs/**",
+    "files/dragon2017/assets/LuaServerUpdate/**",
+    "**/.DNA_*", "**/.gp_uuid", "**/INSTALLATION", "**/AdjustAttribution", "**/__app_uuid__",
+    "**/*.log", "**/*.xml", "**/*.db", "**/cache/**"
+  ],
+  "excludeContent": ["ELF", "dex", "zip"],
+  "minFileBytes": 65536
+}
+```
+
+Excludes always win over includes. The hard excludes (`login_data` and the identity files) are also built into `dualfs-tool harvest` and `seed` themselves, so a wrong profile still can't pool or copy them.
+
+**Output:** `phase0b/scripts/mlbb-inventory.sh`, `t4-mlbb-inventory.txt`, `t4-size-histogram.txt`, `t4-classification.md`, `t4-download-order-A.txt`, `t4-prefs-paths.txt`, `t4-identity-files.txt`, `t4-unpack-payloads.txt`, draft `mlbb-sharing-profile.json`
 
 ### T5 Build the M8 prototype (5–7 days)
 
@@ -890,7 +962,7 @@ Your MLBB and clone A are only read, except step 6, which runs clone A.
    - Run A for 5 minutes (no login) with `dfaudit`, the `DUALFS` counters and monitor v2.
    - This is the "does the game recognize its resources" check for an instance that already owns them.
 3. **Seed set S:** the pool files A downloaded itself, in A's download order (list L from T4), plus `img/`. Record S's size and file count.
-4. **Instance B** (User 2): clone MLBB (installed-app mode). Before its first launch, seed S as placeholders in B's external tree. Mode **M-a "assets only"**: no metadata files, and B's internal data starts empty like a fresh install.
+4. **Instance B** (User 2): clone MLBB (installed-app mode). Before its first launch, seed S as placeholders in B's external tree. Mode **M-a "assets only"**: no metadata files, and B's internal data starts empty like a fresh install, so B creates its own preferences and identity files.
 5. **Control C** (User 3): clone MLBB, no seed.
 6. **Run C for W = 8 minutes** with monitor v2. Cap 2 GB written. Monitor v2 records:
    - per-UID received bytes every 15 s, plus `/proc/net/dev`;
@@ -907,20 +979,33 @@ Your MLBB and clone A are only read, except step 6, which runs clone A.
    | **Network** | B's vs C's received bytes, and bytes spent on S paths (from file sizes) |
    | **Recognition** | `DUALFS` redirect-read counts on S paths in B. Did MLBB open and verify the seeded files? |
    | **UI** | Remaining-download size in the banner, B vs C at the same moments |
+   | **Unpack** (separate from download; N3) | Did B re-extract the APK payloads? Evidence: the extraction preferences appearing in B, extracted files written (`dfaudit`), SevenZip lines in logcat, and time and bytes written without matching network traffic. Recorded as its own outcome, *skips unpack: yes / no*, never merged into the L2 verdict. |
+   | **Paths** (N1) | The T4 step 7 scan, run on B. Every absolute path in B's preferences and metadata must name B's own root (`.../emulated/2/...`, `.../data/user/2/...`), never A's. |
+   | **Identity** (N6) | B has its own identity files (T4 step 8 list), and their hashes differ from A's. Only hashes are compared; contents are never printed. |
 
 9. **Verdict** by the rules in Section 7.
 10. **Index modes.** Only if M-a turns out L1-only (R_B ≥ 50%); each mode uses a fresh B instance:
-    - **M-b:** also give B private copies of the metadata files that T4 found **byte-identical** between your host MLBB (logged in) and A (never logged in). A file identical in both cannot contain account data. Re-run steps 6–8.
+    - **M-b:** also give B private copies of the metadata files that T4 found **byte-identical** between your host MLBB (logged in) and A (never logged in). A file identical in both cannot contain account data. It can't contain an instance path either, because the two roots differ. The path scan still runs on B to confirm. Re-run steps 6–8.
     - **M-c** (needs your explicit approval **and** a decision on plan.md rule 3.1-A): also copy A's download-state files (`last_download_state`, `loadres_*`, `PatchFileList*.xml`) privately into B. A never logged in, so they hold no account data. But this copies one instance's state into another, which plan.md forbids today. It runs only to learn whether MLBB's skip logic depends on its index. If it does, Phase 1 needs a rule change, not just code.
+      - **Path rule (N1):** A's download-state files may hold A's absolute paths. M-c runs only if T4 step 7 shows every such path can be rewritten from A's root to B's root, **and** the path scan on B finds none of A's paths afterwards. Otherwise **M-c is dropped**. Planting A's paths would make B fail or, worse, write into A's tree, and the shared UID would not stop it.
+      - Preferences (including the `__Extracted_*` unpack keys) are category A and are **never** copied, in any mode. The identity files are never copied either.
 11. **L1 after harvest:** harvest B. B's private bytes on S-equivalent paths must fall to ≤ 5% of S.
 12. **Rolling-harvest feasibility** (only if L2 fails). Every 2 minutes: stop B, harvest its completed files, restart B. Repeat for 20 minutes. Measure the peak extra disk use and whether MLBB carries on correctly after each restart. This tells whether "L1 with rolling harvest" fits the phone.
 13. **Load time:** MLBB A cold start to the Create Character screen, DualFs on vs off (rehydrated), 3 runs each. Measured from screenshots every 2 s plus logcat `Displayed`.
+14. **Recents lifecycle test** (N5), on A, 5 cycles:
+    1. With MLBB A on Create Character, open Recents (`input keyevent KEYCODE_APP_SWITCH`) and swipe the MLBB card away. The swipe coordinates come from `uiautomator dump`, the Phase 0 method.
+    2. Relaunch MLBB from the engine.
+    3. From logcat and `dumpsys activity activities`, count: `MobaGameUnityActivity` start requests, Unity player initializations, engine stub tasks and processes, and crashes. Crashes include Scudo or deadlock reports in `libnativelogin.so` and tombstones in `logcat -b crash`.
 
-**Proof rule:** success is **never** inferred from seeded files merely existing. L2 is claimed only when R_B, the network bytes, the frontier and the redirect-read evidence agree.
+    Pass: exactly one start request, one Unity player and one task per relaunch, and no crash. One extra cycle runs with DualFs off, so an engine bug isn't blamed on DualFs. If it fails, check the dropped-new-intent finding (Section 3.8) first.
+
+**Proof rule:** success is **never** inferred from seeded files merely existing. L2 is claimed only when R_B, the network bytes, the frontier and the redirect-read evidence agree. "Skips unpack" is reported separately and never counts toward L2.
+
+**Diagnosis note (N1):** if MLBB reports "Not enough space" in any run, first look in logcat for SevenZip `ErrorCode 1804` (`ENOENT`), then run the path scan. A stale cached path looks like a disk-space error.
 
 **Clean-up:** after recording, delete instances B and C (our own test instances) to free space. A is either rehydrated or kept on placeholders, whichever you choose.
 
-**Output:** `phase0b/scripts/mlbb-monitor-v2.sh`, `net-uid.sh`, `t10-mlbb-A/`, `t10-mlbb-B/`, `t10-mlbb-C/` (summary, logs, file lists, counters), `t10-verdict.md`
+**Output:** `phase0b/scripts/mlbb-monitor-v2.sh`, `net-uid.sh`, `t10-mlbb-A/`, `t10-mlbb-B/`, `t10-mlbb-C/` (summary, logs, file lists, counters), `t10-paths-identity.txt`, `t10-recents.txt`, `t10-verdict.md`
 
 ### T11 Instagram compatibility (1–1.5 days)
 
@@ -966,11 +1051,12 @@ Steps 1–3 need no login. Steps 4–10 need your approval, a **throwaway** acco
    | K6 | Alarm + PendingIntent | alarm proxies |
    | K7 | Notification with a channel | notification proxies |
    | K8 | `startForegroundService` | activity-manager proxies |
+   | K9 | Bring back a running `singleTop` activity with a new intent; `onNewIntent` must arrive exactly once | `ActivityThread.handleNewIntent` reflection (Section 3.8; Lead N4) |
 
-3. **`engine/check-framework.sh`** (from T1): pull `framework.jar` → `dexdump` → compare with `engine/api-baseline/api<level>-signatures.txt` → report new or changed members of every interface on the Section 3.8 risk lists.
+3. **`engine/check-framework.sh`** (from T1): pull `framework.jar` → `dexdump` → compare with `engine/api-baseline/api<level>-signatures.txt` → report new or changed members of every interface on the Section 3.8 risk lists, plus the OEM scan from T1 step 4 (methods on the phone that AOSP doesn't have).
 4. **Runbook** (`engine/README.md`). After any Android, One UI or Google Play system update (which includes ART):
    1. run `check-framework.sh`;
-   2. run compatibility kit K1–K8 in User 0;
+   2. run compatibility kit K1–K9 in User 0;
    3. run the Canary isolation check;
    4. MLBB smoke test (reach Create Character).
 5. **Likely next breakages**, each mapped to a kit case:
@@ -981,7 +1067,9 @@ Steps 1–3 need no login. Steps 4–10 need your approval, a **throwaway** acco
    | Account callbacks | K4 |
    | `LaunchActivityItem` / `ClientTransaction` changes | every activity launch |
    | `bindService*` parameter churn | K1 |
-   | `ArtMethod` layout after ART updates | every JNI hook; K1–K8 crash early |
+   | `ArtMethod` layout after ART updates | every JNI hook; K1–K9 crash early |
+   | `handleNewIntent` signature (changed in Android 12) | K9 |
+   | Samsung / One UI-added abstract methods in extended or implemented types | the OEM scan in `check-framework.sh` |
 
 6. **Upstream:** offering patch 0001 to NewBlackbox upstream is a public action. Only if you say so.
 
@@ -1074,13 +1162,19 @@ phase0/canary/              Canary bumped to v0.3 (env, attack matrix, compat pa
 |---|---|---|---|---|
 | T1 | Unimplemented methods in engine-implemented framework interfaces (after patches) | 1 known (`IServiceConnection`, fixed) + 0–3 more | 0 left | any left |
 | T1 | Changed parameter lists behind dynamic proxies; missing mirror members | a few | each explained and either patched or shown harmless | any unexplained |
+| T1 | Samsung / One UI additions in types the engine extends, implements or drives (N4) | a few, e.g. `handleCoreStatesChanged(Bundle)` [Lead] | every one classified; every abstract one patched | any unclassified |
+| T1 | Engine `handleNewIntent` reflection form matching the phone | none [Hypothesis] | recorded; if none, a compatibility patch is written and K9 passes | — |
 | T2 | Which property readers see Pixel 6 | old native API only | recorded (no pass/fail) | — |
 | T2 | Inactive hooks confirmed inactive | `AntiDetection`, `FileSystemHook`, likely `GmsProxy` | recorded | — |
 | T2 | Native hard-coded `/sdcard` write escapes the container | [Hypothesis] yes | recorded as an isolation finding for Phase 1 | — |
+| T2 | `ANDROID_ID` in Users 0 and 1 (N6) | identical (the engine's) [Hypothesis] | recorded as an identity finding for Phase 1 | — |
 | T3 | `st_blocks` of a 64 MiB sparse file on L-ext and L-guest | 0 | 0 | > 0 → M8 needs internal storage |
 | T3 | Tag storage | xattr works on f2fs [Hypothesis] | xattr **or** index fallback works from a guest | neither |
 | T3 | Disk cost per placeholder (`df`) | ~4 KiB (one f2fs node block) [Hypothesis] | ≤ 8 KiB | > 16 KiB → raise `minFileBytes` |
 | T3 | `fchmod` on a read-only handle | allowed | recorded (confirms the guard is needed) | — |
+| T4 | Absolute paths in A's preferences and metadata (N1) | several [Lead] | every one listed with file, key and value | scan incomplete (a listed file not scanned) |
+| T4 | `login_data/**` and identity files located (N2, N6) | present [Lead] | all listed, and every one covered by a hard exclude | any one inside the include set without an exclude |
+| T4 | Unpack payloads and their extracted output located (N3) | `Resources*.dat`, `libResources0.so` [Lead] | located, classified (shareable / ELF-private) | not found → recorded as "no separate unpack seen" |
 | T5 | Hook technique spike | at least one technique installs | 0 crashes, 100% of calls seen, ≤ 1 µs added per call | both crash or miss calls → M8 blocked |
 | T5 | R7 after the engine update | no change | Canary `consistent=true` in Users 0/1; MLBB A reaches Create Character | any regression |
 
@@ -1134,6 +1228,11 @@ phase0/canary/              Canary bumped to v0.3 (env, attack matrix, compat pa
 | L1 after harvest | B's private bytes on S-equivalent paths ≤ 5% of S | > 5% | |
 | Rolling harvest (only if L2 fails) | Peak extra disk ≤ 3 GB, MLBB continues after each restart | > 3 GB or MLBB breaks | Decides the G4b fallback |
 | Load time A to Create Character, DualFs on vs off | ≤ +10% | more | |
+| **Login data and identity never pooled or copied** (N2, N6) | 0 files under `login_data/` or on the identity list in the pool, the seed set or any copied set | ≥ 1 | Checked by `dualfs-tool verify-tree` against the hard excludes |
+| **Paths in B** (N1) | 0 of A's absolute paths in B's preferences or metadata, in every mode | ≥ 1 → that mode is invalid; B is deleted | |
+| **Identity distinct** (N6) | All of B's identity-file hashes differ from A's | any equal | |
+| **Skips unpack** (N3) | recorded yes / no, separately from L2 | — | Not a gate: unpacking costs time and disk, not network |
+| **Recents relaunch** (N5), 5 cycles | 1 start request, 1 Unity player and 1 task per relaunch; 0 crashes | a second Unity player, an extra task, or any crash | The extra DualFs-off cycle assigns the cause (engine or DualFs) |
 
 ### T11 (Instagram) and T12 (maintenance)
 
@@ -1144,7 +1243,7 @@ phase0/canary/              Canary bumped to v0.3 (env, attack matrix, compat pa
 | Push to the clone within 15 min | delivered to the clone | delivered elsewhere or not at all, but the app works when opened | app broken |
 | Background jobs | ≥ 1 run within 30 min | — | none |
 | Two clones (optional step 9) | both stay logged in | — | one is logged out (Keystore collision) → Phase 1 needs Keystore namespacing |
-| T12 compatibility kit K1–K8 on Android 17 with the patch series | 8/8 | — | any fail |
+| T12 compatibility kit K1–K9 on Android 17 with the patch series | 9/9 | — | any fail |
 | `fetch-and-patch.sh` from a clean clone | applies cleanly | — | any conflict |
 | `check-framework.sh` | 0 unexplained differences | — | any |
 
@@ -1178,6 +1277,11 @@ phase0/canary/              Canary bumped to v0.3 (env, attack matrix, compat pa
 | 22 | First write to a huge shared file stalls during copy-up (e.g. a 500 MB bundle patched in place) | Medium | Medium | T9 copy-up timing, T4 | Measure; if MLBB patches in place, consider chunked copy-up in Phase 1 |
 | 23 | inotify watch limit smaller than MLBB's folder count | Low–Medium | Medium (audit blind spots) | T3 step 8, T4 | Audit a subset of folders per run, rotating across runs |
 | 24 | 50 guest processes maximum | Low | Low | — | Fine under one-instance-at-a-time |
+| 25 | Copying metadata or preferences plants A's absolute paths in B, causing wrong-path failures or **B writing into A's tree** (the shared UID doesn't stop it) [Lead N1] | High if M-c ran unchanged | High (isolation breach) | T4 step 7, T10 path check | Prove path rewriting first or drop M-c; run the path scan on every new instance |
+| 26 | Relocating guest data (the T3 fallback) or renaming the engine breaks cached absolute paths in existing instances. Shows up as "Not enough space" (SevenZip 1804 / `ENOENT`) [Lead N1] | Medium | High | T3, T4 step 7 | Relocate only for new instances; check logcat before blaming disk space |
+| 27 | Samsung-added hidden methods cause `AbstractMethodError` or silent misbehavior (e.g. `handleCoreStatesChanged`), and `handleNewIntent` is silently dropped on Android 12+ [Lead N4; Audit] | Medium | High | T1 OEM scan, K9 | One patch per finding; OEM scan in the T12 runbook |
+| 28 | Swipe from Recents → relaunch starts two Unity players → deadlock or Scudo crash in `libnativelogin.so` [Lead N5] | Unknown | High (crash; possible login-state damage) | T10 step 14 | Find the cause (dropped new intent, stub task affinity) and fix it in the engine; no login during tests |
+| 29 | Identity files or `ANDROID_ID` shared or copied across instances tie several accounts to one device install, which is a ban-risk signal. The engine's inconsistent spoofing adds to it [Lead N6; Audit] | Medium | High | T2 step 2, T4 step 8, T10 identity check | Identity files hard-excluded and never copied; Phase 1 needs a per-instance `ANDROID_ID`; spoofing kept as is and measured in T2 |
 
 ---
 
@@ -1244,18 +1348,18 @@ flowchart LR
 | Task | Deliverables | Done when |
 |---|---|---|
 | T0 | `phase0b/results/t0-baseline.txt` | Versions match Phase 0 (or the differences are recorded); network counter method chosen |
-| T1 | `phase0b/scripts/framework-diff.sh`, `t1-framework-diff-api37.txt`, `t1-mirror-check-api37.txt`, `engine/api-baseline/api37-signatures.txt`, compatibility patches if needed | Every difference classified (patched, harmless, or open) |
+| T1 | `phase0b/scripts/framework-diff.sh`, `t1-framework-diff-api37.txt`, `t1-mirror-check-api37.txt`, `engine/api-baseline/api37-signatures.txt`, `t1-oem-additions-api37.txt`, compatibility patches if needed (including `handleNewIntent` if none of the engine's forms match) | Every difference and every OEM addition classified (patched, harmless, or open) |
 | T2 | `t2-runtime-audit.txt`; Canary v0.3 env page; optional honest-mode result | Status of every row in Sections 3.6–3.7 confirmed on the phone |
 | T3 | `phase0b/scripts/fs-probe.sh`, `t3-fs-probe.txt` with the decision table | Tag storage and pool location decided |
-| T4 | `phase0b/scripts/mlbb-inventory.sh`, `t4-mlbb-inventory.txt`, `t4-size-histogram.txt`, `t4-classification.md`, `t4-download-order-A.txt`, draft `mlbb-sharing-profile.json` | Every top-level folder and metadata file classified |
+| T4 | `phase0b/scripts/mlbb-inventory.sh`, `t4-mlbb-inventory.txt`, `t4-size-histogram.txt`, `t4-classification.md`, `t4-download-order-A.txt`, `t4-prefs-paths.txt`, `t4-identity-files.txt`, `t4-unpack-payloads.txt`, draft `mlbb-sharing-profile.json` (with the `login_data` and identity hard excludes) | Every top-level folder, metadata file, cached path, login/identity file and unpack payload classified |
 | T5 | `engine/patches/0002-dualfs-init.patch`, `0003-dualfs-native.patch`; `phase0b/tools/dualfs-tool/`, `phase0b/tools/dfaudit/`; Canary v0.3; `phase0b/apps/packloader/`, `phase0b/apps/poolhost/`; `t5-backend.txt`, `t5-m9-spike.txt`; build logs | Self-tests pass; R7 confirmed after the engine update |
 | T6 | `phase0b/scripts/conformance-v2.sh`, `t6-conformance.txt` | Matrix complete with pass/fail per case |
 | T7 | `phase0b/scripts/crash-tests.sh`, `t7-crash.txt` | All rounds run; counts recorded |
 | T8 | `t8-concurrency.txt` | All five cases recorded |
 | T9 | `t9-benchmark.json`, `t9-summary.md` | Every metric in the T9 table has a number |
-| T10 | `phase0b/scripts/mlbb-monitor-v2.sh`, `net-uid.sh`, `t10-mlbb-A/`, `t10-mlbb-B/`, `t10-mlbb-C/`, `t10-verdict.md` | A verdict (L2 / L1-only / inconclusive) with the evidence; test instances cleaned up |
+| T10 | `phase0b/scripts/mlbb-monitor-v2.sh`, `net-uid.sh`, `t10-mlbb-A/`, `t10-mlbb-B/`, `t10-mlbb-C/`, `t10-paths-identity.txt`, `t10-recents.txt`, `t10-verdict.md` | A verdict (L2 / L1-only / inconclusive) with the evidence, plus separate "skips unpack", path, identity and Recents results; test instances cleaned up |
 | T11 | `t11-instagram.md` | Every step recorded (pass / partial / fail / not approved) |
-| T12 | `engine/UPSTREAM`, `engine/patches/series`, renamed patch 0001, `engine/fetch-and-patch.sh`, `engine/check-framework.sh`, `engine/README.md` runbook; Canary compat page; `t12-compat-api37.txt` | The series applies from a clean clone; K1–K8 results recorded |
+| T12 | `engine/UPSTREAM`, `engine/patches/series`, renamed patch 0001, `engine/fetch-and-patch.sh`, `engine/check-framework.sh`, `engine/README.md` runbook; Canary compat page; `t12-compat-api37.txt` | The series applies from a clean clone; K1–K9 results recorded |
 | T13 | `phase0b/REPORT.md`; `plan.md` updates (Section 9, 20.1, gates); status line of this plan | Section 11 decision made and written down |
 
 **Commit policy:** small Conventional Commits, pushed to `Horali/DualApp` `main` as each deliverable lands. Never commit media, `framework.jar`, `libc.so` or any other Google binary, or build outputs.
@@ -1266,11 +1370,11 @@ flowchart LR
 
 | Gate | Question | GO requires | Evidence |
 |---|---|---|---|
-| **G1b** Engine | Can we keep the engine working on Android 17? | The patch series applies from a clean clone; compatibility kit 8/8; T1 differences all explained; Canary and MLBB run; engine decision recorded | T1, T12, T5 step 10 |
+| **G1b** Engine | Can we keep the engine working on Android 17? | The patch series applies from a clean clone; compatibility kit 9/9; T1 differences all explained; Canary and MLBB run; engine decision recorded | T1, T12, T5 step 10 |
 | **G2b** CoW safety | Is the pool safe? | T6 100%; T7 zero corruption and zero half-written files; T8 pass; full pool scrub OK after all tests; the Phase 0 `chmod` attack fails from Java **and** native code | T6–T8 |
 | **G2c** Hook coverage | Does every access go through the hooks? | `dfaudit`: **0** bypass events in T9 and T10 (MLBB A on placeholders and B). Any bypass must be explained, contained by an exclusion rule, and the re-run must pass. | T9, T10 |
-| **G3b** MLBB compatibility | Does MLBB run on shared files? | A reaches Create Character on placeholder-backed files; 0 crashes; no repair prompt; load time ≤ +10% | T10 steps 2, 13 |
-| **G4b** MLBB value | Does sharing actually save the second copy? | **L2 PASS** in a rule-compliant mode (M-a or M-b), **or** L1 with rolling harvest keeping peak extra disk ≤ 3 GB | T10 |
+| **G3b** MLBB compatibility | Does MLBB run on shared files? | A reaches Create Character on placeholder-backed files; 0 crashes; no repair prompt; load time ≤ +10%; the Recents relaunch test passes (one Unity player, no crash); login data and identity files are never pooled or copied | T10 steps 2, 8, 13, 14 |
+| **G4b** MLBB value | Does sharing actually save the second copy? | **L2 PASS** in a rule-compliant mode (M-a or M-b) with 0 of A's absolute paths found in B, **or** L1 with rolling harvest keeping peak extra disk ≤ 3 GB | T10 |
 | **G5** Instagram | Does a clone keep its session? | Login survives every T11 step 5 event; your own Instagram unaffected. Push may be "partial". | T11 |
 | **G6** Performance | Is overhead acceptable? | All T9 performance thresholds met | T9 |
 
@@ -1283,4 +1387,4 @@ flowchart LR
 | **NO-GO** | G1b fails | Evaluate another engine or the work-profile backend before any Phase 1 work. |
 | **NO-GO for sharing** (overrides everything) | Any pool corruption not explained by an action outside the threat model (Section 4.1) | No shared storage in Phase 1, whatever the other results. |
 
-**If M-c is what makes L2 work**, Phase 1 also needs your decision to amend plan.md Section 3.1 with a new data category, "resource index metadata", defined by an objective test (for example: byte-identical between a logged-in and a never-logged-in instance). Without that decision, G4b counts as failed for M-c.
+**If M-c is what makes L2 work**, Phase 1 also needs your decision to amend plan.md Section 3.1 with a new data category, "resource index metadata", defined by an objective test (for example: byte-identical between a logged-in and a never-logged-in instance). Without that decision, G4b counts as failed for M-c. M-c also counts as failed unless path rewriting was proven and B's path scan was clean (Section 2.1, N1).
