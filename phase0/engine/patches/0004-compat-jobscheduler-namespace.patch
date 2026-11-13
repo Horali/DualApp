@@ -1,0 +1,214 @@
+diff --git a/Bcore/src/main/java/top/niunaijun/blackbox/fake/service/IJobServiceProxy.java b/Bcore/src/main/java/top/niunaijun/blackbox/fake/service/IJobServiceProxy.java
+index 71cc2cc..5a9bcc9 100644
+--- a/Bcore/src/main/java/top/niunaijun/blackbox/fake/service/IJobServiceProxy.java
++++ b/Bcore/src/main/java/top/niunaijun/blackbox/fake/service/IJobServiceProxy.java
+@@ -46,25 +46,22 @@ public class IJobServiceProxy extends BinderInvocationStub {
+                     return 0; 
+                 }
+                 
+-                if (args[0] == null) {
+-                    Slog.w(TAG, "Schedule: args[0] is null, returning RESULT_FAILURE");
+-                    return 0; 
+-                }
+-                
+-                if (!(args[0] instanceof JobInfo)) {
+-                    Slog.w(TAG, "Schedule: args[0] is not JobInfo: " + args[0].getClass().getSimpleName());
+-                    
+-                    return handleNonJobInfoSchedule(who, method, args);
++                // DualApp compat 0004: Android 14+ puts a String namespace (usually
++                // null) before the JobInfo, so find the JobInfo by type.
++                int jobIndex = indexOfJobInfo(args);
++                if (jobIndex < 0) {
++                    Slog.w(TAG, "Schedule: no JobInfo argument, passing through");
++                    return method.invoke(who, args);
+                 }
+                 
+-                JobInfo jobInfo = (JobInfo) args[0];
++                JobInfo jobInfo = (JobInfo) args[jobIndex];
+                 Slog.d(TAG, "Schedule: Processing JobInfo for package: " + jobInfo.getService().getPackageName());
+                 
+                 
+                 try {
+                     JobInfo proxyJobInfo = BlackBoxCore.getBJobManager().schedule(jobInfo);
+                     if (proxyJobInfo != null) {
+-                        args[0] = proxyJobInfo;
++                        args[jobIndex] = proxyJobInfo;
+                         Slog.d(TAG, "Schedule: Successfully created proxy JobInfo");
+                         return method.invoke(who, args);
+                     }
+@@ -95,30 +92,6 @@ public class IJobServiceProxy extends BinderInvocationStub {
+         }
+         
+         
+-        private Object handleNonJobInfoSchedule(Object who, Method method, Object[] args) throws Throwable {
+-            try {
+-                
+-                if (args[0] instanceof String) {
+-                    String workId = (String) args[0];
+-                    Slog.d(TAG, "Schedule: Handling WorkManager string ID: " + workId);
+-                    
+-                    
+-                    JobInfo minimalJobInfo = createMinimalJobInfo(workId);
+-                    if (minimalJobInfo != null) {
+-                        args[0] = minimalJobInfo;
+-                        return method.invoke(who, args);
+-                    }
+-                }
+-                
+-                
+-                return method.invoke(who, args);
+-            } catch (Exception e) {
+-                Slog.w(TAG, "Schedule: Failed to handle non-JobInfo schedule", e);
+-                return 0; 
+-            }
+-        }
+-        
+-        
+         private Object scheduleWithUIDSpoofing(Object who, Method method, Object[] args, JobInfo jobInfo) throws Throwable {
+             try {
+                 
+@@ -148,19 +121,6 @@ public class IJobServiceProxy extends BinderInvocationStub {
+         }
+         
+         
+-        private JobInfo createMinimalJobInfo(String workId) {
+-            try {
+-                
+-                
+-                Slog.d(TAG, "Schedule: Creating minimal JobInfo for work ID: " + workId);
+-                return null; 
+-            } catch (Exception e) {
+-                Slog.w(TAG, "Schedule: Failed to create minimal JobInfo", e);
+-                return null;
+-            }
+-        }
+-        
+-        
+         private boolean isUIDValidationError(Exception e) {
+             if (e.getCause() instanceof IllegalArgumentException) {
+                 String message = e.getCause().getMessage();
+@@ -181,13 +141,15 @@ public class IJobServiceProxy extends BinderInvocationStub {
+         @Override
+         protected Object hook(Object who, Method method, Object[] args) throws Throwable {
+             try {
+-                Integer jobId = (Integer) args[0];
+-                if (jobId == null) {
+-                    Slog.w(TAG, "Cancel: JobId is null");
++                // DualApp compat 0004: Android 14+ is cancel(String namespace, int jobId).
++                int idIndex = args == null ? -1 : args.length - 1;
++                if (idIndex < 0 || !(args[idIndex] instanceof Integer)) {
++                    Slog.w(TAG, "Cancel: no job id argument");
+                     return method.invoke(who, args);
+                 }
++                Integer jobId = (Integer) args[idIndex];
+                 
+-                args[0] = BlackBoxCore.getBJobManager()
++                args[idIndex] = BlackBoxCore.getBJobManager()
+                         .cancel(BActivityThread.getAppConfig().processName, jobId);
+                 return method.invoke(who, args);
+             } catch (Exception e) {
+@@ -222,25 +184,22 @@ public class IJobServiceProxy extends BinderInvocationStub {
+                     return 0; 
+                 }
+                 
+-                if (args[0] == null) {
+-                    Slog.w(TAG, "Enqueue: args[0] is null, returning RESULT_FAILURE");
+-                    return 0; 
+-                }
+-                
+-                if (!(args[0] instanceof JobInfo)) {
+-                    Slog.w(TAG, "Enqueue: args[0] is not JobInfo: " + args[0].getClass().getSimpleName());
+-                    
+-                    return handleNonJobInfoEnqueue(who, method, args);
++                // DualApp compat 0004: Android 14+ puts a String namespace (usually
++                // null) before the JobInfo, so find the JobInfo by type.
++                int jobIndex = indexOfJobInfo(args);
++                if (jobIndex < 0) {
++                    Slog.w(TAG, "Enqueue: no JobInfo argument, passing through");
++                    return method.invoke(who, args);
+                 }
+                 
+-                JobInfo jobInfo = (JobInfo) args[0];
++                JobInfo jobInfo = (JobInfo) args[jobIndex];
+                 Slog.d(TAG, "Enqueue: Processing JobInfo for package: " + jobInfo.getService().getPackageName());
+                 
+                 
+                 try {
+                     JobInfo proxyJobInfo = BlackBoxCore.getBJobManager().schedule(jobInfo);
+                     if (proxyJobInfo != null) {
+-                        args[0] = proxyJobInfo;
++                        args[jobIndex] = proxyJobInfo;
+                         Slog.d(TAG, "Enqueue: Successfully created proxy JobInfo");
+                         return method.invoke(who, args);
+                     }
+@@ -271,30 +230,6 @@ public class IJobServiceProxy extends BinderInvocationStub {
+         }
+         
+         
+-        private Object handleNonJobInfoEnqueue(Object who, Method method, Object[] args) throws Throwable {
+-            try {
+-                
+-                if (args[0] instanceof String) {
+-                    String workId = (String) args[0];
+-                    Slog.d(TAG, "Enqueue: Handling WorkManager string ID: " + workId);
+-                    
+-                    
+-                    JobInfo minimalJobInfo = createMinimalJobInfo(workId);
+-                    if (minimalJobInfo != null) {
+-                        args[0] = minimalJobInfo;
+-                        return method.invoke(who, args);
+-                    }
+-                }
+-                
+-                
+-                return method.invoke(who, args);
+-            } catch (Exception e) {
+-                Slog.w(TAG, "Enqueue: Failed to handle non-JobInfo enqueue", e);
+-                return 0; 
+-            }
+-        }
+-        
+-        
+         private Object enqueueWithUIDSpoofing(Object who, Method method, Object[] args, JobInfo jobInfo) throws Throwable {
+             try {
+                 
+@@ -324,19 +259,6 @@ public class IJobServiceProxy extends BinderInvocationStub {
+         }
+         
+         
+-        private JobInfo createMinimalJobInfo(String workId) {
+-            try {
+-                
+-                
+-                Slog.d(TAG, "Enqueue: Creating minimal JobInfo for work ID: " + workId);
+-                return null; 
+-            } catch (Exception e) {
+-                Slog.w(TAG, "Enqueue: Failed to create minimal JobInfo", e);
+-                return null;
+-            }
+-        }
+-        
+-        
+         private boolean isUIDValidationError(Exception e) {
+             if (e.getCause() instanceof IllegalArgumentException) {
+                 String message = e.getCause().getMessage();
+@@ -352,6 +274,19 @@ public class IJobServiceProxy extends BinderInvocationStub {
+         }
+     }
+ 
++    /** Index of the first JobInfo argument, or -1. */
++    static int indexOfJobInfo(Object[] args) {
++        if (args == null) {
++            return -1;
++        }
++        for (int i = 0; i < args.length; i++) {
++            if (args[i] instanceof JobInfo) {
++                return i;
++            }
++        }
++        return -1;
++    }
++
+     @Override
+     public boolean isBadEnv() {
+         return false;
