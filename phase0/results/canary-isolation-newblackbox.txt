@@ -1,0 +1,28 @@
+Canary isolation test inside NewBlackbox (unmodified upstream, spoofing on), 2026-11-13, SM-S936B Android 17
+
+Instance        instanceId  dataDir
+host (normal)   1d163fe9    /data/user/0/dev.dualapp.canary
+BB user 0       74d0626c    /data/user/0/top.niunaijun.blackbox/blackbox/data/user/0/dev.dualapp.canary
+BB user 1       9180c35e    /data/user/0/top.niunaijun.blackbox/blackbox/data/user/1/dev.dualapp.canary
+
+External files dirs
+BB user 0  /storage/emulated/0/Android/data/top.niunaijun.blackbox/files/blackbox/storage/emulated/0/Android/data/dev.dualapp.canary/files
+BB user 1  /storage/emulated/0/Android/data/top.niunaijun.blackbox/files/blackbox/storage/emulated/1/Android/data/dev.dualapp.canary/files
+
+First run
+  BB user 1  run=1 consistent=true prefs=0 db=0 int=0 ext=0  (new id)
+  BB user 0  run=1 consistent=true prefs=0 db=0 int=0 ext=0  (new id)
+
+After am force-stop top.niunaijun.blackbox
+  BB user 0  id=74d0626c run=2 consistent=true prefs=1 db=1 int=1 ext=1
+  BB user 1  id=9180c35e run=2 consistent=true prefs=1 db=1 int=1 ext=1
+  host       id=1d163fe9 run=4 consistent=true prefs=3 db=3 int=3 ext=3  (unaffected by the guests)
+
+Observations
+  Guest reports uid=10001 (virtual uid); all guests actually run under the BlackBox host uid.
+  Guest Build.MODEL / FINGERPRINT show the real SM-S936B values, not the Pixel 6 spoof
+  (Build fields are read before the native property hook; the spoof may still affect
+  SystemProperties lookups and native code).
+  All guest data lives inside BlackBox's own data dir, so uninstalling BlackBox deletes every instance.
+
+Reboot test: pending.
