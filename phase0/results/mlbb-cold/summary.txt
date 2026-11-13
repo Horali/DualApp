@@ -1,0 +1,26 @@
+MLBB 2.2.23.12351 inside NewBlackbox User 0 (unmodified upstream, spoofing on), cold first launch, no login. 2026-11-13.
+
+Result: FAIL. Crash loop from the first second. Not anti-cheat: an engine incompatibility with Android 17.
+
+Abort message (repeated, 211 times in the crash buffer):
+  JNI FatalError called: java.lang.Error thrown during binder transaction:
+  java.lang.AbstractMethodError: abstract method "void android.app.IServiceConnection.connected(
+  android.content.ComponentName, android.os.IBinder, android.app.IBinderSession, boolean)"
+  on receiver top.niunaijun.blackbox.fake.delegate.ServiceConnectionDelegate
+
+Cause: Android 17 added an IBinderSession parameter to the hidden IServiceConnection.connected()
+callback. NewBlackbox's ServiceConnectionDelegate (Bcore .../fake/delegate/ServiceConnectionDelegate.java:52-56)
+only implements the 2-arg and 3-arg forms. Any guest that binds a service crashes when the
+system delivers the connection. MLBB's ":UnityKillsMe" helper process binds a service at start-up,
+dies, and the engine restarts it (the "opening and closing" the owner saw). Canary passed only
+because it never binds a service.
+
+Also seen once: 'attempted to close file descriptor 239, expected to be unowned' (fdsan abort) in the same process.
+
+Measured over 4 minutes (monitor log: log.txt):
+  guest external data   +258 MB (written in the first 15 s, then flat)
+  guest internal data   +146 MB
+  device network rx     ~4 MB (device-wide counter, not per-UID)
+  free space            19 GB -> 18 GB
+So the game never reached its resource download. L2 could not be measured.
+Engine force-stopped at the end. Guest data (~400 MB) remains inside the engine's folders.
