@@ -88,6 +88,9 @@ public class MainActivity extends Activity {
            .append(" sdk=").append(Build.VERSION.SDK_INT).append('\n')
            .append("reported fingerprint=").append(Build.FINGERPRINT).append('\n');
 
+        File shared = new File(getFilesDir(), "shared.bin");
+        if (shared.exists()) out.append(sharedProbe(shared));
+
         for (String l : out.toString().split("\n")) Log.i(TAG, l);
         Log.i(TAG, "SUMMARY id=" + id + " run=" + n + " consistent=" + consistent
                 + " prefs=" + prefRuns + " db=" + dbRuns + " int=" + intLines + " ext=" + extLines);
@@ -99,6 +102,49 @@ public class MainActivity extends Activity {
         ScrollView sv = new ScrollView(this);
         sv.addView(tv);
         setContentView(sv);
+    }
+
+    /**
+     * Phase 0 storage probe. Runs only when the test harness has placed
+     * files/shared.bin (a symlink to a 0444 blob in a shared pool).
+     * Checks, from inside a real guest process, whether a guest can get
+     * write access to the shared blob. It restores the blob afterwards.
+     */
+    private static String sharedProbe(File f) {
+        StringBuilder p = new StringBuilder();
+        String path = f.getAbsolutePath();
+        long len = f.length();
+        p.append("probe.target=").append(path).append(" len=").append(len).append('\n');
+        p.append("probe.hashBefore=").append(sha(f)).append('\n');
+        p.append("probe.writeAsIs=").append(tryAppend(f) ? "ALLOWED" : "DENIED").append('\n');
+        boolean chmod;
+        try { android.system.Os.chmod(path, 0644); chmod = true; } catch (Exception e) { chmod = false; p.append("probe.chmodError=").append(e).append('\n'); }
+        p.append("probe.chmod0644=").append(chmod ? "ALLOWED" : "DENIED").append('\n');
+        boolean wrote = chmod && tryAppend(f);
+        p.append("probe.writeAfterChmod=").append(wrote ? "ALLOWED" : "DENIED").append('\n');
+        p.append("probe.hashAfter=").append(sha(f)).append('\n');
+        // restore
+        try {
+            if (wrote) try (java.io.RandomAccessFile raf = new java.io.RandomAccessFile(f, "rw")) { raf.setLength(len); }
+            android.system.Os.chmod(path, 0444);
+        } catch (Exception e) { p.append("probe.restoreError=").append(e).append('\n'); }
+        p.append("probe.hashRestored=").append(sha(f)).append('\n');
+        return p.toString();
+    }
+
+    private static boolean tryAppend(File f) {
+        try (FileWriter w = new FileWriter(f, true)) { w.write("X"); return true; } catch (IOException e) { return false; }
+    }
+
+    private static String sha(File f) {
+        try (java.io.FileInputStream in = new java.io.FileInputStream(f)) {
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] buf = new byte[1 << 16]; int n;
+            while ((n = in.read(buf)) > 0) md.update(buf, 0, n);
+            StringBuilder s = new StringBuilder();
+            for (byte b : md.digest()) s.append(String.format("%02x", b));
+            return s.substring(0, 16);
+        } catch (Exception e) { return "ERR " + e; }
     }
 
     private static int countLines(File f) {
