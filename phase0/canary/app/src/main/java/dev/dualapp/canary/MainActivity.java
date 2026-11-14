@@ -9,6 +9,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Process;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.LinearLayout;
@@ -112,11 +113,23 @@ public class MainActivity extends Activity {
 
         LinearLayout ll = new LinearLayout(this);
         ll.setOrientation(LinearLayout.VERTICAL);
+        // targetSdk 35 draws edge-to-edge: keep the button above the navigation bar.
+        ll.setPadding(0, 0, 0, 150);
         ll.addView(sv, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
         ll.addView(env, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         setContentView(ll);
+    }
+
+    /** Test hook: pressing E opens the env page without touching the button. */
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_E) {
+            startActivity(new Intent(this, EnvActivity.class));
+            return true;
+        }
+        return super.onKeyDown(keyCode, event);
     }
 
     /**

@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.os.Process;
 import android.provider.Settings;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.LinearLayout;
@@ -64,6 +65,8 @@ public class EnvActivity extends Activity {
 
         LinearLayout ll = new LinearLayout(this);
         ll.setOrientation(LinearLayout.VERTICAL);
+        // targetSdk 35 draws edge-to-edge: keep the buttons above the navigation bar.
+        ll.setPadding(0, 0, 0, 150);
         ll.addView(sv, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
         ll.addView(env, new LinearLayout.LayoutParams(
@@ -74,6 +77,17 @@ public class EnvActivity extends Activity {
 
         runEnv();
         show();
+    }
+
+    /** Test hook: pressing X runs the T2 step 3 escape test without the button. */
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_X) {
+            line("escape=" + EnvProbe.escapeTest());
+            show();
+            return true;
+        }
+        return super.onKeyDown(keyCode, event);
     }
 
     private void runEnv() {
