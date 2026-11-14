@@ -721,6 +721,18 @@ Whether to build M9 is a Phase 1 decision.
 
 **Output:** `t2-runtime-audit.txt` (installed / failed hooks, property-reader table, escape result, BTI/PAC flags)
 
+**T2 result (2026-11-15, [`phase0b/results/t2/t2-runtime-audit.txt`](phase0b/results/t2/t2-runtime-audit.txt)):**
+
+- **Hooks confirmed by runtime:** VirtualSpoof is active and really spoofs (`[spoof] ro.hardware = qcom`). AntiDetection, FileSystemHook and ResourceLoading **log "installed" but install nothing** (source confirms no `DobbyHook` call). GmsProxy is inactive. The AntiVirtualDetect proxy is never registered.
+- **HiddenAPI exemption fails on Android 17:** `setHiddenApiExemptions` is no longer an exported symbol in `libart.so`. No crash was observed, but the exemption is not applied.
+- **UnixFileSystem: 8 of 9 hooks.** `canonicalize0(String)` is now a non-native Java wrapper; the native form is `canonicalize0(String,Z)`. `File.getCanonicalPath()` is therefore not redirected.
+- **Property readers:** Java `Build`, the modern native API and `getprop` children all see the real Samsung values. Only the old `__system_property_get` sees Pixel 6 / Android 12 — in the clones, not in the normal app.
+- **`ANDROID_ID` is shared:** the same hash in the normal app, User 0 and User 1. Clones do not get a per-instance ID (N6 identity link, confirmed).
+- **Native `/sdcard` escape confirmed:** `/data/data/<other pkg>` is denied (`EACCES`), but a hard-coded `/sdcard/Download/...` write succeeds because the engine has All Files Access.
+- **New engine bug:** the `:black` process is frozen by Android's app freezer and killed on the first sync binder call (`Sync transaction while frozen`). A guest `startActivity` then fails with `SecurityException` and an ANR. This needs a T12/T13 fix (keep `:black` unfrozen).
+- **BTI/PAC:** present in `libc.so`; the Dobby hook still installed, so T5 must test the real hook targets.
+- Canary v0.3 is installed (versionCode 3) with the env page and E/X test shortcuts. Step 6 (honest build) was not run.
+
 ### T3 Filesystem capability probe (1 day)
 
 Run under the engine UID via `run-as` (domain `runas_app`), and repeat the key checks from inside a guest via Canary v0.3 (domain `untrusted_app_27`). Three locations:

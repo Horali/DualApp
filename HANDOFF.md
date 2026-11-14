@@ -23,7 +23,12 @@ The clone engine is **NewBlackbox** (open source, upstream commit `89b5983`). It
   - Firmware, security patch and ART are unchanged from Phase 0; free space is now **14 GB** (was 16–19 GB).
   - The installed engine is the **0001 + 0004 + 0005** build (versionCode 400, updated 2026-11-14 02:26:31).
   - Per-UID network counter: **`dumpsys netstats detail`** works; `dumpsys connectivity trafficcontroller` has no byte counters on this firmware.
-- **Not started:** T2–T13.
+- **T2 (runtime audit) is DONE** (2026-11-15). See `phase0b/results/t2/t2-runtime-audit.txt`.
+  - VirtualSpoof works. AntiDetection, FileSystemHook and ResourceLoading log "installed" but install nothing.
+  - The HiddenAPI exemption fails on Android 17; UnixFileSystem hooks 8 of 9 (`canonicalize0` changed); GmsProxy is inactive.
+  - `ANDROID_ID` is identical in the normal app and Users 0/1; a native hard-coded `/sdcard` write escapes the container.
+  - **New engine bug:** the `:black` process is frozen and killed by Android's app freezer, which can crash a guest's `startActivity`. Needs a T12/T13 fix.
+- **Not started:** T3–T13.
 
 ## What to do next
 
@@ -31,10 +36,9 @@ Follow `phase-0b-plan.md` Section 5 task by task. Each task has a procedure, del
 
 The suggested order is:
 
-1. **T2** (engine runtime audit).
-2. **T3** (filesystem probe).
-3. **T4** (MLBB inventory).
-4. **T5** onward.
+1. **T3** (filesystem probe).
+2. **T4** (MLBB inventory).
+3. **T5** onward.
 
 Record each task's text results under `phase0b/results/<task>/`. Add a short "T<n> result" note under that task in `phase-0b-plan.md`, as was done for T1.
 

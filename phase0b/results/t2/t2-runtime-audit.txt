@@ -1,11 +1,11 @@
-# T2 engine runtime audit (PARTIAL)
+# T2 engine runtime audit
 
 Date: 2026-11-15. Device: SM-S936B, Android 17 / API 37, One UI 9.
 Engine: NewBlackbox `89b5983` + patches 0001 + 0004 + 0005, versionCode 400, updated 2026-11-14 02:26:31.
 
-**Method:** `adb logcat` cleared, then the Canary clone launched in engine User 0 through the engine UI (approved). The only other phone writes were the standard `uiautomator dump` file in `/sdcard/Download`, deleted immediately. Source cross-check on the engine tree; `libc.so` and `libart.so` pulled read-only into `phase0b/work/` (gitignored).
+**Method:** `adb logcat` cleared, then the Canary clone launched in engine Users 0 and 1 through the engine UI. Canary v0.3 (versionCode 3) adds an env page: old `__system_property_get`, modern `__system_property_find` / `read_callback`, Java `Build`, `getprop` in a child process, `ANDROID_ID` (logged as a hash), `RLIMIT_NOFILE`, and the T2 step 3 escape test. A temporary `uiautomator dump` file in `/sdcard/Download` was created and deleted. The escape test wrote and immediately deleted one 1-byte file in `/sdcard/Download`. `libc.so` and `libart.so` were pulled read-only into `phase0b/work/` (gitignored).
 
-**Status:** steps 1, 4 and 5 done. Step 2 partly done: Java `Build` and the old native property API are measured; the modern native API, the `getprop` child process and `ANDROID_ID` need Canary v0.3. Step 3 (escape test) and step 6 (honest build) are not run: they need approval.
+**Status: steps 1–5 done. Step 6 (honest build) not run — optional, not approved.**
 
 ## 1. Hooks: what installed and what failed
 
@@ -14,81 +14,76 @@ Engine: NewBlackbox `89b5983` + patches 0001 + 0004 + 0005, versionCode 400, upd
 | 1 | **VirtualSpoof** `__system_property_get` | `Spoof installed successfully`; `VirtualSpoof: __system_property_get hook loaded`; `[spoof] ro.hardware = qcom`; `[spoof] ro.product.board = lahaina` | **Active** | Installed in both processes and actually intercepted reads. |
 | 2 | **AntiDetection** file hiding | `Installing anti-detection hooks...`; `File system hooks installed`; `Anti-detection hooks installation complete` | **Inactive** (the log is misleading) | `AntiDetection.cpp:230-240`: `install_file_hooks()` opens `libc.so`, closes it, and logs success. It never calls `DobbyHook` and never touches a target. |
 | 3 | **FileSystemHook** `open` / `open64` | `FileSystemHook: Initializing file system hooks`; `Found open function at 0x778d28de80`; `Found open64 function at 0x778d28de80` | **Inactive** | `FileSystemHook.cpp` finds the symbols but never calls `DobbyHook`. Both names resolve to the same address (bionic aliases). |
-| 4 | **HiddenAPI** exemption | `HiddenAPI: Didn't find setHiddenApiExemptions in any form`; `set disableHiddenApi Fail!!!` | **Failed on Android 17** | The three mangled names in `hidden_api.cpp:32-37` are absent from `libart.so`'s dynamic symbols (`llvm-nm -D`), and the library is stripped. The string `setHiddenApiExemptions` still exists in the library. The exemption is therefore **not applied**. Canary and MLBB still ran, so no crash was observed; the practical impact needs a targeted check (T5 / T12). |
+| 4 | **HiddenAPI** exemption | `HiddenAPI: Didn't find setHiddenApiExemptions in any form`; `set disableHiddenApi Fail!!!` | **Failed on Android 17** | The three mangled names in `hidden_api.cpp:32-37` are absent from `libart.so`'s dynamic symbols (`llvm-nm -D`), and the library is stripped. The string `setHiddenApiExemptions` still exists. The exemption is therefore **not applied**. Canary and MLBB still ran, so no crash was observed; the practical impact needs a targeted check (T5 / T12). |
 | 5 | **UnixFileSystemHook** (9 natives) | 8 × `register class：java/io/UnixFileSystem, method：… success!`; `Method is not native, skipping hook` for `canonicalize0` | **8 of 9 active** | The phone has `canonicalize0(String)` **PRIVATE** (a Java wrapper) and `canonicalize0(String,Z)` **PRIVATE NATIVE**. The engine hooks the 1-arg form, so `canonicalize0` is **not hooked** on Android 17. Silent gap: `File.getCanonicalPath()` is not redirected. |
 | 6 | **GmsProxy** | `Failed to get gms service binder` | **Inactive**, as hypothesized | No GMS service in `ServiceManager`; the mock-token paths are never reached. |
 | 7 | **AntiVirtualDetect** | no line at all | **Proxy never installed** | `AntiVirtualDetectProxy` is not added to `HookManager`; only its static `isAntiDetectProvider()` is used by `BActivityThread` to skip known detection providers. The proxy itself is dead code. |
 | 8 | **NativeCore** init | `NativeCore init.`; 11 × `set addIORule`; `set enableIO`; `Binder.getCallingUid`, `VMClassLoader.findLoadedClass`, `DexFile.openDexFileNative` registered | **Active** | Also `AccessFlag` checks for every hooked native. |
 | 9 | **ResourceLoading** | `Could not find ApkAssets.nativeLoad symbol`; `Found open function at 0x778d28de80`; `Native resource loading hooks initialized (without system properties)` | **Inactive** | `hidden_api.cpp:80-125` only logs; it installs no hook. |
 
-## 2. Property readers (partial)
+## 2. Property readers (measured in the normal app, User 0 and User 1)
 
-| Reader | Value seen on the phone | Evidence |
-|---|---|---|
-| Java `Build.MODEL` / `Build.FINGERPRINT` | `SM-S936B` / `samsung/pa2qxxx/pa2q:17/CP2A.260605.016/S936BXXUDDZJB_OXMDDZJB:user/release-keys` | Canary log |
-| Old native `__system_property_get` | Pixel 6 values (spoofed) | `VirtualSpoof` `[spoof]` lines; hook installed |
-| Modern native `__system_property_find` + `read_callback` | not measured yet | needs Canary v0.3 env page |
-| `getprop` in a child process | not measured yet | needs Canary v0.3 env page |
-| `Settings.Secure.ANDROID_ID`, Users 0 vs 1 | not measured yet | needs Canary v0.3 env page |
+| Reader | Normal app | Clone User 0 | Clone User 1 |
+|---|---|---|---|
+| Java `Build.MODEL` / `Build.FINGERPRINT` | `SM-S936B` / Samsung Android 17 | `SM-S936B` / Samsung Android 17 | `SM-S936B` / Samsung Android 17 |
+| Old native `__system_property_get` | `SM-S936B` (real) | **`Pixel 6`** (spoofed) | **`Pixel 6`** (spoofed) |
+| Old native fingerprint | Samsung | **`google/oriole/oriole:12/SP1A.210812.015/7679548:user/release-keys`** | same Pixel 6 value |
+| Modern native `__system_property_find` + `read_callback` | `SM-S936B` (real) | `SM-S936B` (real) | `SM-S936B` (real) |
+| `getprop` in a child process | `SM-S936B` (real) | `SM-S936B` (real) | `SM-S936B` (real) |
+| `Settings.Secure.ANDROID_ID` (SHA-256 prefix) | `2746e481e11f`, len 16 | **`2746e481e11f`** | **`2746e481e11f`** |
+| `RLIMIT_NOFILE` | cur 32768 / max 524288 | same | same |
 
-## 3. Canary regression (F1)
+**Conclusions:**
 
-`SUMMARY id=74d0626c run=10 consistent=true prefs=9 db=9 int=9 ext=9`
+- The spoofing is exactly as narrow as the audit said: only callers of the **old** `__system_property_get` see Pixel 6 / Android 12. Java `Build`, the modern native API and child processes all see the real Samsung values. This is the inconsistent picture described in Section 3.7 of the plan.
+- **`ANDROID_ID` is identical in the normal app, User 0 and User 1.** The clone does not get a per-instance ID. For MLBB or Instagram, two clones (and the real app) would look like the same device install — the N6 identity link, confirmed at the mechanism level.
+- `RLIMIT_NOFILE` is the same inside the guest as outside (32768 soft), so the handle budget is not reduced by the engine.
 
-- Same instance ID as Phase 0; `dataDir` and `extFilesDir` point at User 0's redirected tree; `uid=10001` (virtual).
+## 3. Hard-coded-path escape test (step 3)
+
+`escape dataData.open=DENIED errno=13 (Permission denied); sdcard.open=ALLOWED wrote=1`
+
+- `open("/data/data/dev.dualapp.canary/files/x", O_RDWR|O_CREAT)` → **DENIED** (`EACCES`), as expected: the real app's data dir belongs to a different UID.
+- `open("/sdcard/Download/.dualapp-escape-test", O_WRONLY|O_CREAT|O_TRUNC)` → **ALLOWED**, one byte written, file deleted immediately. The engine's All Files Access lets a guest's **native** code reach real shared storage with a hard-coded path. This confirms the risk-20 hypothesis: libc-level `/sdcard` redirection is missing.
+
+## 4. New engine issue: the `:black` process is frozen and killed
+
+- `02:48:13 am_kill : [0,23238,top.niunaijun.blackbox:black,...,Sync transaction while frozen]`
+- `02:57:51` and `03:04:51` the same, with the guest running.
+- The guest's binder call gets `BR_FROZEN_REPLY` / `FAILED BINDER TRANSACTION`, then `DeadObjectException` in `BlackManager.getPackageInfo`.
+- Cause: `:black` is a cached background process. Android's app freezer freezes it, and the system kills it when a sync binder transaction arrives instead of unfreezing it.
+- Consequence seen: a guest `startActivity` could not resolve its target, the raw intent reached the real system, and the guest died with `SecurityException: not exported from uid 10034` followed by an input-dispatch ANR.
+- This is an engine robustness bug for T12/T13. A fix needs `:black` to stay unfrozen (foreground service, a binding from the guest/UI, or a freezer exemption). It is not a Canary bug.
+
+## 5. Canary regression (F1)
+
+`SUMMARY id=74d0626c run=14 consistent=true prefs=13 db=13 int=13 ext=13`
+
+- Same instance ID as Phase 0; `dataDir` and `extFilesDir` point at each user's redirected tree; `uid=10001` (virtual).
 - No crash, empty crash buffer, no `AndroidRuntime` errors. F1 still holds after the 0004/0005 update.
 
-## 4. Branch protection (step 5)
+## 6. Branch protection (step 5)
 
 - `/system/lib64/libc.so`: GNU property note `aarch64 feature: BTI, PAC`; build ID `8dd29b5be3344cf1545af1db8c58e42c`.
 - The Dobby inline hook on `__system_property_get` **did install** on this libc, so BTI/PAC does not block that hook. T5 step 1 must test the actual hook targets, not assume either way.
 
-## 5. Log excerpt (trimmed)
+## 7. Log excerpt (trimmed)
 
 ```text
 11-15 02:48:14.102 23851 D VirtualSpoof: Spoof installed successfully
-11-15 02:48:14.102 23851 D AntiDetection: Installing anti-detection hooks...
 11-15 02:48:14.102 23851 D AntiDetection: File system hooks installed
-11-15 02:48:14.102 23851 D AntiDetection: Anti-detection hooks installation complete
 11-15 02:48:14.103 23851 E NativeCore: HiddenAPI: Didn't find setHiddenApiExemptions in any form
 11-15 02:48:14.103 23851 D NativeCore: set disableHiddenApi Fail!!!
 11-15 02:48:14.127 23851 E GmsProxy: Failed to get gms service binder
-11-15 02:48:14.368 23866 D VirtualSpoof: Spoof installed successfully
-11-15 02:48:14.369 23866 E NativeCore: HiddenAPI: Didn't find setHiddenApiExemptions in any form
-11-15 02:48:14.444 23866 D NativeCore: Method is not native, skipping hook
 11-15 02:48:14.444 23866 D NativeCore: Skipping hook for non-native method: java/io/UnixFileSystem.canonicalize0
-11-15 02:48:14.444 23866 D NativeCore: FileSystemHook: Initializing file system hooks
-11-15 02:48:14.444 23866 D NativeCore: FileSystemHook: Found open function at 0x778d28de80
 11-15 02:48:14.462 23866 D VirtualSpoof: [spoof] ro.hardware = qcom
-11-15 02:48:14.462 23866 D VirtualSpoof: [spoof] ro.product.board = lahaina
 11-15 02:48:14.473 23866 I CANARY  : SUMMARY id=74d0626c run=10 consistent=true prefs=9 db=9 int=9 ext=9
+11-15 03:16:56.263 12329 I CANARY_ENV: native.old.model=Pixel 6 (len=7)
+11-15 03:16:56.263 12329 I CANARY_ENV: native.modern.model=SM-S936B (found)
+11-15 03:16:56.271 12329 I CANARY_ENV: androidId.hash=2746e481e11f len=16
+11-15 03:19:26.064 13823 I CANARY_ENV: escape dataData.open=DENIED errno=13 (Permission denied); sdcard.open=ALLOWED wrote=1
 ```
 
-## 6. Crash while opening the env page (new finding)
+## 8. Step 6 (optional honest build)
 
-Canary v0.3 was installed as an update (versionCode 3, data kept) and the clone relaunched. The "Open env page" button click crashed the guest. Two engine issues appeared in the same 15-second window.
-
-### 6.1 The engine's `:black` process is frozen and killed by Android 17
-
-- `02:48:13 am_kill : [0,23238,top.niunaijun.blackbox:black,...,Sync transaction while frozen]` (first launch).
-- `02:57:51` the same for PID 23851, while the guest was running.
-- The guest's binder call got `BR_FROZEN_REPLY` / `FAILED BINDER TRANSACTION`, then `DeadObjectException` in `BlackManager.getPackageInfo`.
-- Cause: `:black` is a cached background process. Android's app freezer freezes it, and the system kills it when a sync binder transaction arrives instead of unfreezing it.
-- Consequence: any guest operation that needs a virtual service at that moment fails. Here it broke activity resolution.
-
-### 6.2 Starting a second guest activity fails with SecurityException
-
-- The Canary button called `startActivity(EnvActivity)`.
-- `ActivityManagerCommonProxy$StartActivity.hook` resolves the target through `BlackBoxCore.getBPackageManager().resolveActivity(...)`.
-- With `:black` dead, resolution returned null, so the hook fell through to the real `IActivityManager.startActivity` with the raw guest intent.
-- The real system refused: `SecurityException: Permission Denial: starting Intent { cmp=dev.dualapp.canary/.EnvActivity } ... not exported from uid 10034`.
-- The `FATAL EXCEPTION` killed the guest main thread; the system then reported an input-dispatch ANR (`02:58:04`) and killed the process (`02:59:40`).
-
-**Open question:** does resolution also fail when `:black` is alive, because `EnvActivity` was added to the host APK after the clone was installed? The clone's component list is registered at install time. This needs a retest; the phone locked (screen timeout) before it could run.
-
-## 7. Pending
-
-- **Canary v0.3 env page** built and installed: versionCode 3, `arm64-v8a`, `libcanary.so` with old/modern property readers, `getprop` child, ANDROID_ID hash, escape test, raw-syscall read, `setxattr`, `RLIMIT_NOFILE`.
-- Retest the env page after unlocking the phone, with `:black` alive, to separate 6.1 from 6.2.
-- Step 3 (hard-coded path escape) still to run.
-- Step 6 (honest build, `DUALAPP_NO_PROP_SPOOF`) is optional and needs approval.
+Not run. It needs a separate build with `-DDUALAPP_NO_PROP_SPOOF` and the owner's approval. The default build is untouched.
