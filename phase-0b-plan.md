@@ -656,6 +656,14 @@ Whether to build M9 is a Phase 1 decision.
 
 **Output:** `phase0b/results/t0-baseline.txt`
 
+**T0 result (2026-11-15, [`phase0b/results/t0/t0-baseline.txt`](phase0b/results/t0/t0-baseline.txt)):**
+
+- **Versions match Phase 0:** fingerprint `S936BXXUDDZJB`, security patch 2026-10-05, ART `372042720`, Android 17 / API 37, One UI 9.0. Build date 2026-10-19. No silent system update.
+- **Free space is lower:** 14 GB available (Phase 0: 16–19 GB). Still above the 4 GB stop line and above T10's ≥ 8 GB precondition, but with less margin.
+- **Engine is the 0001+0004+0005 build:** versionCode 400, `lastUpdateTime` 2026-11-14 02:26:31, targetSdk 28, UID 10057. Newer than the "patch-0001 build" this step expected; runtime proof of 0004/0005 is still pending (T11 step 3, K9).
+- **Engine users:** User 0 has MLBB (156,810 KiB internal + 2,137,470 KiB external) and Canary; User 1 has Canary only. Engine data total ≈ 2.19 GiB (154 MiB internal + 2.04 GiB external).
+- **Network counter chosen: `dumpsys netstats detail`.** It lists 828 per-UID entries with `rb` / `tb` byte counts. `dumpsys connectivity trafficcontroller` has 0 byte-counter lines on this firmware (only BPF map configuration and permission tables). UID 10057 has no netstats entry yet because the engine has had no network since the last boot (uptime 34.6 h); T10 step 6 checks the counter against `/proc/net/dev`.
+
 ### T1 Android 17 framework diff (1 day)
 
 1. `adb pull /system/framework/framework.jar` (a read-only copy) into a scratch folder. **Never commit it**: it's Google's binary.

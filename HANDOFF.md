@@ -19,7 +19,11 @@ The clone engine is **NewBlackbox** (open source, upstream commit `89b5983`). It
 - **Neither 0004 nor 0005 is proven at runtime yet.**
   - 0004 is checked by T11 step 3: a guest's JobScheduler/WorkManager job runs.
   - 0005 is checked by kit case K9: `onNewIntent` reaches a guest activity that is already running. K9 needs a Canary v0.3 compat page.
-- **Not started:** T0, T2–T13. `phase0b/results/` only has `t1/`.
+- **T0 (baseline) is DONE** (2026-11-15). See `phase0b/results/t0/t0-baseline.txt`.
+  - Firmware, security patch and ART are unchanged from Phase 0; free space is now **14 GB** (was 16–19 GB).
+  - The installed engine is the **0001 + 0004 + 0005** build (versionCode 400, updated 2026-11-14 02:26:31).
+  - Per-UID network counter: **`dumpsys netstats detail`** works; `dumpsys connectivity trafficcontroller` has no byte counters on this firmware.
+- **Not started:** T2–T13.
 
 ## What to do next
 
@@ -27,11 +31,10 @@ Follow `phase-0b-plan.md` Section 5 task by task. Each task has a procedure, del
 
 The suggested order is:
 
-1. **T0** (baseline, read-only; output `phase0b/results/t0-baseline.txt`).
-2. **T2** (engine runtime audit).
-3. **T3** (filesystem probe).
-4. **T4** (MLBB inventory).
-5. **T5** onward.
+1. **T2** (engine runtime audit).
+2. **T3** (filesystem probe).
+3. **T4** (MLBB inventory).
+4. **T5** onward.
 
 Record each task's text results under `phase0b/results/<task>/`. Add a short "T<n> result" note under that task in `phase-0b-plan.md`, as was done for T1.
 

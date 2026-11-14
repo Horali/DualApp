@@ -1,0 +1,148 @@
+
+===== T0 baseline (read-only) - 2026-11-15T02:37:35+07:00 =====
+
+===== adb version =====
+Android Debug Bridge version 1.0.41
+Version 37.0.1-15733141
+Installed as C:\Users\child\AppData\Local\Android\Sdk\platform-tools\adb.exe
+
+===== adb devices =====
+List of devices attached
+RRCY1032Y6F            device product:pa2qxxx model:SM_S936B device:pa2q transport_id:4
+
+
+===== build identity =====
+SM-S936B
+pa2q
+samsung/pa2qxxx/pa2q:17/CP2A.260605.016/S936BXXUDDZJB_OXMDDZJB:user/release-keys
+CP2A.260605.016.S936BXXUDDZJB
+17
+37
+2026-10-05
+S936BXXUDDZJB
+90000
+Mon Oct 19 15:16:36 KST 2026
+
+===== ART module (com.google.android.art) =====
+      enabled=true minSdkVersion=31 targetSdkVersion=37 versionCode=372042720 targetSandboxVersion=1
+      enabled=true minSdkVersion=31 targetSdkVersion=37 versionCode=371000140 targetSandboxVersion=1
+      enabled=true minSdkVersion=31 targetSdkVersion=37 versionCode=371000140 targetSandboxVersion=1
+
+===== boot time =====
+124656.99 613093.29
+Sun Nov 15 02:37:39 WIB 2026
+
+===== free space =====
+Filesystem       Size Used Avail Use% Mounted on
+/dev/block/dm-75 219G 205G   14G  94% /data/user/0
+/dev/fuse        219G 205G   14G  94% /storage/emulated
+---
+/dev/block/dm-75 229521408 214820436  14569900  94% /data/user/0
+
+===== engine package (installed build) =====
+    codePath=/data/app/~~1u7LjTL3YtWnltqTGmAEmg==/top.niunaijun.blackbox-u4mInWNPWOhOt2_z0W2xwg==
+    versionCode=400 minSdk=21 targetSdk=28
+    versionName=4.0.0
+    lastUpdateTime=2026-11-14 02:26:31
+      firstInstallTime=2026-11-13 13:38:23
+      firstInstallTime=2026-11-13 13:38:23
+
+===== engine UID =====
+    uid=10057 gids=[] type=0 prot=signature
+    appId=10057
+
+===== engine data size (KiB) =====
+internal total: 157460	/data/user/0/top.niunaijun.blackbox
+external total: 2137538	/storage/emulated/0/Android/data/top.niunaijun.blackbox/files/blackbox
+
+===== engine users and packages (internal) =====
+-- user 0 --
+com.mobile.legends
+dev.dualapp.canary
+156810	/data/user/0/top.niunaijun.blackbox/blackbox/data/user/0/com.mobile.legends
+46	/data/user/0/top.niunaijun.blackbox/blackbox/data/user/0/dev.dualapp.canary
+156859	/data/user/0/top.niunaijun.blackbox/blackbox/data/user/0
+-- user 1 --
+dev.dualapp.canary
+46	/data/user/0/top.niunaijun.blackbox/blackbox/data/user/1/dev.dualapp.canary
+49	/data/user/0/top.niunaijun.blackbox/blackbox/data/user/1
+
+===== engine users and packages (external) =====
+-- user 0 --
+com.mobile.legends
+dev.dualapp.canary
+2137470	/storage/emulated/0/Android/data/top.niunaijun.blackbox/files/blackbox/storage/emulated/0/Android/data/com.mobile.legends
+11	/storage/emulated/0/Android/data/top.niunaijun.blackbox/files/blackbox/storage/emulated/0/Android/data/dev.dualapp.canary
+2137506	/storage/emulated/0/Android/data/top.niunaijun.blackbox/files/blackbox/storage/emulated/0
+-- user 1 --
+dev.dualapp.canary
+11	/storage/emulated/0/Android/data/top.niunaijun.blackbox/files/blackbox/storage/emulated/1/Android/data/dev.dualapp.canary
+22	/storage/emulated/0/Android/data/top.niunaijun.blackbox/files/blackbox/storage/emulated/1
+
+===== network counter source 1: trafficcontroller =====
+byte-counter lines in dump: 0
+10057 appearances (all are permission tables):
+390:    10057 PERMISSION_ACCESS_LOCAL_NETWORK PERMISSION_INTERNET
+571:    15010057 PERMISSION_ACCESS_LOCAL_NETWORK PERMISSION_INTERNET
+
+===== network counter source 2: netstats detail =====
+per-UID entries in dump: 828
+entries for uid=10057: 0
+sample format:
+  History since boot:
+  ident=[{type=0, ratType=-2, subscriberId=510013..., metered=true, defaultNetwork=false, oemManaged=OEM_NONE, subId=1, transports={0}}] uid=0 set=DEFAULT tag=0x0
+    NetworkStatsHistory: bucketDuration=7200
+      st=1794564000 rb=0 rp=0 tb=360 tp=9 op=0
+      st=1794578400 rb=0 rp=0 tb=360 tp=9 op=0
+      st=1794585600 rb=0 rp=0 tb=200 tp=5 op=0
+
+===== /proc/net/dev (device-wide snapshot) =====
+Inter-|   Receive                                                |  Transmit
+ face |bytes    packets errs drop fifo frame compressed multicast|bytes    packets errs drop fifo colls carrier compressed
+    lo: 47126975    6374    0    0    0     0          0         0 47126975    6374    0    0    0     0       0          0
+dummy0:       0       0    0    0    0     0          0         0     2450      35    0    0    0     0       0          0
+  ifb0:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+  ifb1:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+ tunl0:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+  gre0:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+gretap0:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+erspan0:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+ip_vti0:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+ip6_vti0:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+  sit0:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+ip6tnl0:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+ip6gre0:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+rmnet_ipa0: 54396427  851035    0    0    0     0          0         0 97535816  749913    0    0    0     0       0          0
+ epdg7:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+ epdg8:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+ epdg9:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+epdg10:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+epdg11:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+epdg12:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+epdg13:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+ epdg0:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+ epdg1:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+ epdg2:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+ epdg3:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+ epdg4:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+ epdg5:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+ epdg6:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+rmnet_data0: 94335104  769811    0    0    0     0          0         0 90309604  902916    0    0    0     0       0          0
+rmnet_data1:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+rmnet_data2:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+rmnet_data3:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+rmnet_data4:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+rmnet_data5:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+rmnet_data6:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+rmnet_data7:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+rmnet_data8:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+rmnet_data9:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+rmnet_data10:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+rmnet_data11:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+rmnet_data12:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+rmnet_data13:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+ wlan0: 402502918  369554    0    0    0     0          0         0 42479852  177091    0    0    0     0       0          0
+  p2p0:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+wifi-aware0:       0       0    0    0    0     0          0         0        0       0    0    0    0     0       0          0
+
+===== done =====
