@@ -64,8 +64,31 @@ Engine: NewBlackbox `89b5983` + patches 0001 + 0004 + 0005, versionCode 400, upd
 11-15 02:48:14.473 23866 I CANARY  : SUMMARY id=74d0626c run=10 consistent=true prefs=9 db=9 int=9 ext=9
 ```
 
-## 6. Pending
+## 6. Crash while opening the env page (new finding)
 
-- **Canary v0.3 env page** built on the PC: versionCode 3, `arm64-v8a`, `libcanary.so` with old/modern property readers, `getprop` child, ANDROID_ID hash, escape test, raw-syscall read, `setxattr`, `RLIMIT_NOFILE`. **Install needs approval.**
-- Step 3 (hard-coded path escape) needs approval; it writes and deletes one 1-byte file in `/sdcard/Download`.
+Canary v0.3 was installed as an update (versionCode 3, data kept) and the clone relaunched. The "Open env page" button click crashed the guest. Two engine issues appeared in the same 15-second window.
+
+### 6.1 The engine's `:black` process is frozen and killed by Android 17
+
+- `02:48:13 am_kill : [0,23238,top.niunaijun.blackbox:black,...,Sync transaction while frozen]` (first launch).
+- `02:57:51` the same for PID 23851, while the guest was running.
+- The guest's binder call got `BR_FROZEN_REPLY` / `FAILED BINDER TRANSACTION`, then `DeadObjectException` in `BlackManager.getPackageInfo`.
+- Cause: `:black` is a cached background process. Android's app freezer freezes it, and the system kills it when a sync binder transaction arrives instead of unfreezing it.
+- Consequence: any guest operation that needs a virtual service at that moment fails. Here it broke activity resolution.
+
+### 6.2 Starting a second guest activity fails with SecurityException
+
+- The Canary button called `startActivity(EnvActivity)`.
+- `ActivityManagerCommonProxy$StartActivity.hook` resolves the target through `BlackBoxCore.getBPackageManager().resolveActivity(...)`.
+- With `:black` dead, resolution returned null, so the hook fell through to the real `IActivityManager.startActivity` with the raw guest intent.
+- The real system refused: `SecurityException: Permission Denial: starting Intent { cmp=dev.dualapp.canary/.EnvActivity } ... not exported from uid 10034`.
+- The `FATAL EXCEPTION` killed the guest main thread; the system then reported an input-dispatch ANR (`02:58:04`) and killed the process (`02:59:40`).
+
+**Open question:** does resolution also fail when `:black` is alive, because `EnvActivity` was added to the host APK after the clone was installed? The clone's component list is registered at install time. This needs a retest; the phone locked (screen timeout) before it could run.
+
+## 7. Pending
+
+- **Canary v0.3 env page** built and installed: versionCode 3, `arm64-v8a`, `libcanary.so` with old/modern property readers, `getprop` child, ANDROID_ID hash, escape test, raw-syscall read, `setxattr`, `RLIMIT_NOFILE`.
+- Retest the env page after unlocking the phone, with `:black` alive, to separate 6.1 from 6.2.
+- Step 3 (hard-coded path escape) still to run.
 - Step 6 (honest build, `DUALAPP_NO_PROP_SPOOF`) is optional and needs approval.
