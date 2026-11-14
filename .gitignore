@@ -2,6 +2,7 @@
 phase0/.gradle-home/
 **/.gradle/
 **/build/
+**/.cxx/
 **/local.properties
 *.apk
 *.aab

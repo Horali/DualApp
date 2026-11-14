@@ -1,6 +1,7 @@
 package dev.dualapp.canary;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -8,6 +9,9 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Process;
 import android.util.Log;
+import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
@@ -101,7 +105,18 @@ public class MainActivity extends Activity {
         tv.setText(out.toString());
         ScrollView sv = new ScrollView(this);
         sv.addView(tv);
-        setContentView(sv);
+
+        Button env = new Button(this);
+        env.setText("Open env page (v0.3)");
+        env.setOnClickListener(v -> startActivity(new Intent(this, EnvActivity.class)));
+
+        LinearLayout ll = new LinearLayout(this);
+        ll.setOrientation(LinearLayout.VERTICAL);
+        ll.addView(sv, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+        ll.addView(env, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        setContentView(ll);
     }
 
     /**
