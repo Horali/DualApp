@@ -1,0 +1,71 @@
+# T2 engine runtime audit (PARTIAL)
+
+Date: 2026-11-15. Device: SM-S936B, Android 17 / API 37, One UI 9.
+Engine: NewBlackbox `89b5983` + patches 0001 + 0004 + 0005, versionCode 400, updated 2026-11-14 02:26:31.
+
+**Method:** `adb logcat` cleared, then the Canary clone launched in engine User 0 through the engine UI (approved). The only other phone writes were the standard `uiautomator dump` file in `/sdcard/Download`, deleted immediately. Source cross-check on the engine tree; `libc.so` and `libart.so` pulled read-only into `phase0b/work/` (gitignored).
+
+**Status:** steps 1, 4 and 5 done. Step 2 partly done: Java `Build` and the old native property API are measured; the modern native API, the `getprop` child process and `ANDROID_ID` need Canary v0.3. Step 3 (escape test) and step 6 (honest build) are not run: they need approval.
+
+## 1. Hooks: what installed and what failed
+
+| # | Hook | Log evidence (PID 23851 `:black`, 23866 guest) | Real status | Notes |
+|---|---|---|---|---|
+| 1 | **VirtualSpoof** `__system_property_get` | `Spoof installed successfully`; `VirtualSpoof: __system_property_get hook loaded`; `[spoof] ro.hardware = qcom`; `[spoof] ro.product.board = lahaina` | **Active** | Installed in both processes and actually intercepted reads. |
+| 2 | **AntiDetection** file hiding | `Installing anti-detection hooks...`; `File system hooks installed`; `Anti-detection hooks installation complete` | **Inactive** (the log is misleading) | `AntiDetection.cpp:230-240`: `install_file_hooks()` opens `libc.so`, closes it, and logs success. It never calls `DobbyHook` and never touches a target. |
+| 3 | **FileSystemHook** `open` / `open64` | `FileSystemHook: Initializing file system hooks`; `Found open function at 0x778d28de80`; `Found open64 function at 0x778d28de80` | **Inactive** | `FileSystemHook.cpp` finds the symbols but never calls `DobbyHook`. Both names resolve to the same address (bionic aliases). |
+| 4 | **HiddenAPI** exemption | `HiddenAPI: Didn't find setHiddenApiExemptions in any form`; `set disableHiddenApi Fail!!!` | **Failed on Android 17** | The three mangled names in `hidden_api.cpp:32-37` are absent from `libart.so`'s dynamic symbols (`llvm-nm -D`), and the library is stripped. The string `setHiddenApiExemptions` still exists in the library. The exemption is therefore **not applied**. Canary and MLBB still ran, so no crash was observed; the practical impact needs a targeted check (T5 / T12). |
+| 5 | **UnixFileSystemHook** (9 natives) | 8 × `register class：java/io/UnixFileSystem, method：… success!`; `Method is not native, skipping hook` for `canonicalize0` | **8 of 9 active** | The phone has `canonicalize0(String)` **PRIVATE** (a Java wrapper) and `canonicalize0(String,Z)` **PRIVATE NATIVE**. The engine hooks the 1-arg form, so `canonicalize0` is **not hooked** on Android 17. Silent gap: `File.getCanonicalPath()` is not redirected. |
+| 6 | **GmsProxy** | `Failed to get gms service binder` | **Inactive**, as hypothesized | No GMS service in `ServiceManager`; the mock-token paths are never reached. |
+| 7 | **AntiVirtualDetect** | no line at all | **Proxy never installed** | `AntiVirtualDetectProxy` is not added to `HookManager`; only its static `isAntiDetectProvider()` is used by `BActivityThread` to skip known detection providers. The proxy itself is dead code. |
+| 8 | **NativeCore** init | `NativeCore init.`; 11 × `set addIORule`; `set enableIO`; `Binder.getCallingUid`, `VMClassLoader.findLoadedClass`, `DexFile.openDexFileNative` registered | **Active** | Also `AccessFlag` checks for every hooked native. |
+| 9 | **ResourceLoading** | `Could not find ApkAssets.nativeLoad symbol`; `Found open function at 0x778d28de80`; `Native resource loading hooks initialized (without system properties)` | **Inactive** | `hidden_api.cpp:80-125` only logs; it installs no hook. |
+
+## 2. Property readers (partial)
+
+| Reader | Value seen on the phone | Evidence |
+|---|---|---|
+| Java `Build.MODEL` / `Build.FINGERPRINT` | `SM-S936B` / `samsung/pa2qxxx/pa2q:17/CP2A.260605.016/S936BXXUDDZJB_OXMDDZJB:user/release-keys` | Canary log |
+| Old native `__system_property_get` | Pixel 6 values (spoofed) | `VirtualSpoof` `[spoof]` lines; hook installed |
+| Modern native `__system_property_find` + `read_callback` | not measured yet | needs Canary v0.3 env page |
+| `getprop` in a child process | not measured yet | needs Canary v0.3 env page |
+| `Settings.Secure.ANDROID_ID`, Users 0 vs 1 | not measured yet | needs Canary v0.3 env page |
+
+## 3. Canary regression (F1)
+
+`SUMMARY id=74d0626c run=10 consistent=true prefs=9 db=9 int=9 ext=9`
+
+- Same instance ID as Phase 0; `dataDir` and `extFilesDir` point at User 0's redirected tree; `uid=10001` (virtual).
+- No crash, empty crash buffer, no `AndroidRuntime` errors. F1 still holds after the 0004/0005 update.
+
+## 4. Branch protection (step 5)
+
+- `/system/lib64/libc.so`: GNU property note `aarch64 feature: BTI, PAC`; build ID `8dd29b5be3344cf1545af1db8c58e42c`.
+- The Dobby inline hook on `__system_property_get` **did install** on this libc, so BTI/PAC does not block that hook. T5 step 1 must test the actual hook targets, not assume either way.
+
+## 5. Log excerpt (trimmed)
+
+```text
+11-15 02:48:14.102 23851 D VirtualSpoof: Spoof installed successfully
+11-15 02:48:14.102 23851 D AntiDetection: Installing anti-detection hooks...
+11-15 02:48:14.102 23851 D AntiDetection: File system hooks installed
+11-15 02:48:14.102 23851 D AntiDetection: Anti-detection hooks installation complete
+11-15 02:48:14.103 23851 E NativeCore: HiddenAPI: Didn't find setHiddenApiExemptions in any form
+11-15 02:48:14.103 23851 D NativeCore: set disableHiddenApi Fail!!!
+11-15 02:48:14.127 23851 E GmsProxy: Failed to get gms service binder
+11-15 02:48:14.368 23866 D VirtualSpoof: Spoof installed successfully
+11-15 02:48:14.369 23866 E NativeCore: HiddenAPI: Didn't find setHiddenApiExemptions in any form
+11-15 02:48:14.444 23866 D NativeCore: Method is not native, skipping hook
+11-15 02:48:14.444 23866 D NativeCore: Skipping hook for non-native method: java/io/UnixFileSystem.canonicalize0
+11-15 02:48:14.444 23866 D NativeCore: FileSystemHook: Initializing file system hooks
+11-15 02:48:14.444 23866 D NativeCore: FileSystemHook: Found open function at 0x778d28de80
+11-15 02:48:14.462 23866 D VirtualSpoof: [spoof] ro.hardware = qcom
+11-15 02:48:14.462 23866 D VirtualSpoof: [spoof] ro.product.board = lahaina
+11-15 02:48:14.473 23866 I CANARY  : SUMMARY id=74d0626c run=10 consistent=true prefs=9 db=9 int=9 ext=9
+```
+
+## 6. Pending
+
+- **Canary v0.3 env page** built on the PC: versionCode 3, `arm64-v8a`, `libcanary.so` with old/modern property readers, `getprop` child, ANDROID_ID hash, escape test, raw-syscall read, `setxattr`, `RLIMIT_NOFILE`. **Install needs approval.**
+- Step 3 (hard-coded path escape) needs approval; it writes and deletes one 1-byte file in `/sdcard/Download`.
+- Step 6 (honest build, `DUALAPP_NO_PROP_SPOOF`) is optional and needs approval.
