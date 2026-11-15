@@ -26,4 +26,19 @@ public final class EnvProbe {
 
     /** T3 step 11: RLIMIT_NOFILE in a guest. */
     public static native String rlimitNofile();
+
+    /** T3 step 1: statfs f_type and block size. */
+    public static native String fsType(String path);
+
+    /** T3 step 10: io_uring_setup from a guest. */
+    public static native String ioUringSetup();
+
+    /** T3 step 7: fchmod on a read-only handle, then reopen /proc/self/fd. */
+    public static native String fchmodReopen(String path);
+
+    /** T3 step 9: copy_file_range speed. */
+    public static native String copyRange(String src, String dst, long size);
+
+    /** T3 step 8: inotify on a guest folder. */
+    public static native String inotifyTest(String dir);
 }

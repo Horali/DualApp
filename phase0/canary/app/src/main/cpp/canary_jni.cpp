@@ -4,9 +4,13 @@
 #include <jni.h>
 #include <android/log.h>
 #include <sys/system_properties.h>
+#include <sys/inotify.h>
 #include <sys/resource.h>
+#include <sys/stat.h>
 #include <sys/syscall.h>
+#include <sys/vfs.h>
 #include <sys/xattr.h>
+#include <time.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
@@ -129,5 +133,128 @@ Java_dev_dualapp_canary_EnvProbe_rlimitNofile(JNIEnv *env, jclass) {
         snprintf(out, sizeof(out), "cur=%llu max=%llu",
                  (unsigned long long) r.rlim_cur, (unsigned long long) r.rlim_max);
     }
+    return mk(env, out);
+}
+
+// T3 step 1: filesystem type and block size (statfs f_type).
+extern "C" JNIEXPORT jstring JNICALL
+Java_dev_dualapp_canary_EnvProbe_fsType(JNIEnv *env, jclass, jstring jpath) {
+    const char *path = env->GetStringUTFChars(jpath, nullptr);
+    struct statfs st;
+    char out[256];
+    if (statfs(path, &st) != 0) {
+        snprintf(out, sizeof(out), "statfs failed errno=%d (%s)", errno, strerror(errno));
+    } else {
+        snprintf(out, sizeof(out), "type=0x%llx bsize=%lld blocks=%lld bfree=%lld",
+                 (unsigned long long) st.f_type, (long long) st.f_bsize,
+                 (long long) st.f_blocks, (long long) st.f_bfree);
+    }
+    env->ReleaseStringUTFChars(jpath, path);
+    return mk(env, out);
+}
+
+// T3 step 10: io_uring_setup from a guest.
+extern "C" JNIEXPORT jstring JNICALL
+Java_dev_dualapp_canary_EnvProbe_ioUringSetup(JNIEnv *env, jclass) {
+    char params[256] = {0};
+#ifdef __NR_io_uring_setup
+    long fd = syscall(__NR_io_uring_setup, 8, params);
+#else
+    long fd = syscall(425, 8, params);  // arm64 __NR_io_uring_setup
+#endif
+    int e = errno;
+    char out[128];
+    if (fd < 0) {
+        snprintf(out, sizeof(out), "io_uring_setup DENIED errno=%d (%s)", e, strerror(e));
+    } else {
+        snprintf(out, sizeof(out), "io_uring_setup OK fd=%ld", fd);
+        close((int) fd);
+    }
+    return mk(env, out);
+}
+
+// T3 step 7: fchmod on a read-only handle, then reopen /proc/self/fd for writing.
+extern "C" JNIEXPORT jstring JNICALL
+Java_dev_dualapp_canary_EnvProbe_fchmodReopen(JNIEnv *env, jclass, jstring jpath) {
+    const char *path = env->GetStringUTFChars(jpath, nullptr);
+    char out[512];
+    int fd = open(path, O_RDONLY);
+    if (fd < 0) {
+        snprintf(out, sizeof(out), "open read-only failed errno=%d (%s)", errno, strerror(errno));
+    } else {
+        int r = fchmod(fd, 0644);
+        int e1 = errno;
+        char proc[64];
+        snprintf(proc, sizeof(proc), "/proc/self/fd/%d", fd);
+        int fd2 = open(proc, O_RDWR);
+        int e2 = errno;
+        snprintf(out, sizeof(out), "fchmod=%s errno=%d; reopen=%s errno=%d (%s)",
+                 r == 0 ? "ALLOWED" : "DENIED", e1,
+                 fd2 >= 0 ? "ALLOWED" : "DENIED", e2, strerror(e2));
+        if (fd2 >= 0) close(fd2);
+        close(fd);
+    }
+    env->ReleaseStringUTFChars(jpath, path);
+    return mk(env, out);
+}
+
+// T3 step 9: copy_file_range speed (raw syscall; not in the public SDK stubs).
+extern "C" JNIEXPORT jstring JNICALL
+Java_dev_dualapp_canary_EnvProbe_copyRange(JNIEnv *env, jclass, jstring jsrc, jstring jdst, jlong size) {
+    const char *src = env->GetStringUTFChars(jsrc, nullptr);
+    const char *dst = env->GetStringUTFChars(jdst, nullptr);
+    char out[256];
+    int sfd = open(src, O_RDONLY);
+    int dfd = open(dst, O_RDWR | O_CREAT | O_TRUNC, 0600);
+    if (sfd < 0 || dfd < 0) {
+        snprintf(out, sizeof(out), "open failed sfd=%d dfd=%d errno=%d (%s)",
+                 sfd, dfd, errno, strerror(errno));
+    } else {
+        struct timespec t0, t1;
+        clock_gettime(CLOCK_MONOTONIC, &t0);
+        long long copied = 0;
+        while (copied < size) {
+#ifdef __NR_copy_file_range
+            long n = syscall(__NR_copy_file_range, sfd, nullptr, dfd, nullptr,
+                             (size_t) (size - copied), 0);
+#else
+            long n = -1;
+#endif
+            if (n <= 0) break;
+            copied += n;
+        }
+        fsync(dfd);
+        clock_gettime(CLOCK_MONOTONIC, &t1);
+        double ms = (t1.tv_sec - t0.tv_sec) * 1000.0 + (t1.tv_nsec - t0.tv_nsec) / 1e6;
+        snprintf(out, sizeof(out), "bytes=%lld ms=%.0f MBps=%.0f",
+                 copied, ms, copied / 1048576.0 / (ms / 1000.0));
+    }
+    if (sfd >= 0) close(sfd);
+    if (dfd >= 0) close(dfd);
+    env->ReleaseStringUTFChars(jsrc, src);
+    env->ReleaseStringUTFChars(jdst, dst);
+    return mk(env, out);
+}
+
+// T3 step 8: inotify on the guest's external folder.
+extern "C" JNIEXPORT jstring JNICALL
+Java_dev_dualapp_canary_EnvProbe_inotifyTest(JNIEnv *env, jclass, jstring jdir) {
+    const char *dir = env->GetStringUTFChars(jdir, nullptr);
+    char out[256];
+    int fd = inotify_init1(IN_NONBLOCK);
+    if (fd < 0) {
+        snprintf(out, sizeof(out), "inotify_init failed errno=%d (%s)", errno, strerror(errno));
+    } else {
+        int w = inotify_add_watch(fd, dir, IN_CREATE | IN_CLOSE_WRITE | IN_OPEN);
+        char path[512];
+        snprintf(path, sizeof(path), "%s/event", dir);
+        int f = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0600);
+        if (f >= 0) close(f);
+        char buf[4096];
+        ssize_t n = read(fd, buf, sizeof(buf));
+        snprintf(out, sizeof(out), "watch=%d read=%zd", w, n);
+        close(fd);
+    }
+    env->ReleaseStringUTFChars(jdir, dir);
     return mk(env, out);
 }

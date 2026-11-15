@@ -14,6 +14,7 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.InputStreamReader;
 import java.security.MessageDigest;
 
@@ -85,6 +86,11 @@ public class EnvActivity extends Activity {
         if (keyCode == KeyEvent.KEYCODE_X) {
             line("escape=" + EnvProbe.escapeTest());
             show();
+            return true;
+        }
+        if (keyCode == KeyEvent.KEYCODE_T) {
+            T3Probe.run(new File(getFilesDir(), "t3probe"),
+                    new File(getExternalFilesDir(null), "t3probe"));
             return true;
         }
         return super.onKeyDown(keyCode, event);
