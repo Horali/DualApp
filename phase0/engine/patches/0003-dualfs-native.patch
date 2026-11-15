@@ -503,10 +503,10 @@ index 0000000..e5ceb40
 +}  // namespace dualfs
 diff --git a/Bcore/src/main/cpp/dualfs/Placeholder.cpp b/Bcore/src/main/cpp/dualfs/Placeholder.cpp
 new file mode 100644
-index 0000000..3e82e58
+index 0000000..8cc221b
 --- /dev/null
 +++ b/Bcore/src/main/cpp/dualfs/Placeholder.cpp
-@@ -0,0 +1,51 @@
+@@ -0,0 +1,53 @@
 +// DualFs: placeholder tag and test. Patch 0003 (new files).
 +#include "DualFs.h"
 +#include <sys/xattr.h>
@@ -543,7 +543,9 @@ index 0000000..3e82e58
 +    if (!g_cfg.loaded || !path || !underRoot(path)) return false;
 +    struct stat st;
 +    if (lstat(path, &st) != 0) return false;
-+    if (!S_ISREG(st.st_mode) || st.st_blocks != 0) return false;
++    if (!S_ISREG(st.st_mode)) return false;
++    // The xattr tag costs one 4 KiB inode block; real data would allocate >= size/2.
++    if (st.st_size > 0 && (long long) st.st_blocks * 512 >= st.st_size / 2) return false;
 +    char sha[80];
 +    off_t tagSize;
 +    if (!readTag(path, sha, sizeof(sha), &tagSize)) return false;
