@@ -16,3 +16,7 @@ phase0/results/**/*.png
 
 # Phase 0b scratch: pulled phone jars and dex dumps (Google/Samsung binaries)
 phase0b/work/
+
+# Phase 0b tool binaries (build outputs)
+phase0b/tools/dualfs-tool/dualfs-tool
+phase0b/tools/dfaudit/dfaudit
