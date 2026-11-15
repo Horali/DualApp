@@ -1,0 +1,53 @@
+# T5 hook-technique spike (step 1)
+
+Date: 2026-11-15. Device: SM-S936B, Android 17 / API 37. App: `dev.dualapp.packloader` v0.1 (normal app, not a guest).
+Method: `phase0b/apps/packloader` native library links the engine's Dobby (`libdobby.a`) and xDL, hooks the functions, runs 1,000,000 opens before and after, then `fopen` / `opendir` / `nftw` callers. Results from logcat tag `PACK` and the app screen.
+
+## Install result
+
+| Hook | Target | Installed | Trampoline |
+|---|---|---|---|
+| `open` | `0x778d28de80` | **OK** | `0x77989eb000` |
+| `openat` | `0x778d28e130` | **OK** | `0x77989eb024` |
+| `__openat` (via `xdl_dsym`) | `0x778d2e2c40` | **OK** | `0x77989eb048` |
+| `fchmod` | `0x778d285434` | **OK** | `0x77989eb06c` |
+| `fopen` | `0x778d2a10d4` | **OK** | `0x77989eb090` |
+| `opendir` | `0x778d282e30` | **OK** | `0x77989eb0b4` |
+
+**No SIGILL, no SIGSEGV, no crash.** The app survived the whole run. This is the first proof that Dobby inline hooks work on this BTI/PAC libc for the file functions, not just `__system_property_get`.
+
+## Cost
+
+| Measurement | Value |
+|---|---|
+| Baseline, 1,000,000 `open` + `close` | 3,071,129,999 ns = **3,071 ns/call** |
+| Hooked, 1,000,000 `open` + `close` | 3,111,902,239 ns = **3,111 ns/call** |
+| **Added per call** | **40 ns (0.04 µs)** |
+
+The plan's budget is ≤ 1 µs added per call; the spike is **25× under** it.
+
+## Coverage
+
+| Counter | Value | Meaning |
+|---|---|---|
+| `__openat` | **1,011,014** | every open in the run: 1M bench + 10k `fopen` + 1k `opendir` + `nftw` + app files |
+| `open` | 10,012 | 10k from `fopen` + ~12 app opens; **the 1M bench opens did not hit this hook** |
+| `openat` | 0 | the app never calls `openat` directly |
+| `fchmod` | 2 | the spike's explicit call + one app call |
+| `fopen` | 10,000 | all calls caught |
+| `opendir` | 1,001 | all calls caught |
+| `nftw` → `__openat` delta | 1 | the walk goes through `__openat` |
+
+**Key finding:** bionic routes `open`, `fopen`, `opendir` and `nftw` through the internal **`__openat`** wrapper. Hooking `open` alone misses the bulk of opens (the 1M bench calls went to `__openat`); hooking `__openat` catches everything. This confirms the plan's Section 4.4/4.5 choice: **`__openat` is the primary hook target**, with `open`/`openat` as secondary.
+
+## Decision
+
+- **Technique A (Dobby inline hooks) is selected for the M8 prototype.** It meets the T5 step 1 pass criteria: 0 crashes, 100% of calls seen (via `__openat`), and 40 ns/call (≤ 1 µs).
+- Technique B (ByteHook PLT) was **not tested** in this run. The plan prefers B only if both pass; A already passes, so B is optional and can be revisited if A shows a bypass in T6/T9.
+- The CoW layer must hook **`__openat`** (found with `xdl_dsym`), not just the public `open`. It must also hook `fchmod` (the Phase 0 attack) and the truncate/time/xattr family from Section 4.4.
+
+## Limits of this spike
+
+- It ran in a **normal app**, not inside the engine's guest process. The guest has the engine's own libc hooks (`UnixFileSystemHook`, etc.) and a different SELinux domain; T6/T9 must confirm the same install and coverage there.
+- The 1M loop uses `/proc/self/cmdline`; real MLBB I/O is on FUSE and may have different per-call costs.
+- The `open` counter behavior shows that a hook on the public `open` is not enough; this is a design input, not a failure.
