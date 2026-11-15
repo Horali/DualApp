@@ -51,3 +51,35 @@ The plan's budget is ≤ 1 µs added per call; the spike is **25× under** it.
 - It ran in a **normal app**, not inside the engine's guest process. The guest has the engine's own libc hooks (`UnixFileSystemHook`, etc.) and a different SELinux domain; T6/T9 must confirm the same install and coverage there.
 - The 1M loop uses `/proc/self/cmdline`; real MLBB I/O is on FUSE and may have different per-call costs.
 - The `open` counter behavior shows that a hook on the public `open` is not enough; this is a design input, not a failure.
+
+## dualfs-tool self-test (100-file tree)
+
+Built with NDK 29 for arm64, run under `run-as top.niunaijun.blackbox`. Test tree: 101 files × 64 KiB (100 plus one in `sub/`), `minbytes=1024`.
+
+| Step | Result |
+|---|---|
+| `harvest` | files=101 **ok=101** err=0 |
+| `verify-tree` | placeholders=101 **good=101** bad=0 |
+| `stats` | placeholders=101 logical_bytes=6,619,136; blobs=101 blob_bytes=6,619,136 |
+| `du` root before | 6,472 KiB |
+| `du` root after harvest | **412 KiB** (101 × 4 KiB inode) |
+| `rehydrate` | placeholders=101 **ok=101** err=0 |
+| `verify-tree` after rehydrate | placeholders=0 |
+| `du` root after rehydrate | 6,472 KiB |
+
+### `st_blocks` finding
+
+- A bare `truncate -s 64M` sparse file has `st_blocks=0` (T3).
+- A placeholder created by the tool has **`st_blocks=8` (4 KiB)** for both a 64 KiB and a 64 MiB file. The creation sequence (`open` → `ftruncate` → `fchmod` → `futimens` → `setxattr`) allocates one inode block.
+- The per-placeholder cost is still **~4 KiB**, inside the T3 ≤ 8 KiB pass criterion.
+- The placeholder test therefore uses **`st_blocks * 512 < st_size / 2`** (fail-private once real data is written), not `st_blocks == 0`. The engine's `dualfs/Placeholder.cpp` uses the same rule.
+
+### Tool commands
+
+`harvest`, `seed <manifest>`, `rehydrate`, `verify-tree`, `scrub`, `stats`, `cleanup`, `recover`.
+
+- Config keys: `pool`, `root`, `tmp`, `locks`, `pkg`, `user`, `minbytes`, `include=`, `exclude=`.
+- Hard excludes: `login_data/` and the identity file names, regardless of the profile.
+- The harvest journal is `pool/journal/harvest.log`; `recover` replays it and recreates missing placeholders.
+- Build: `phase0b/tools/dualfs-tool/build.sh` (NDK `aarch64-linux-android26-clang`).
+- The tool binary is a build output and is gitignored; the self-test is reproducible from the source.
