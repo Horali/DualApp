@@ -83,3 +83,23 @@ Built with NDK 29 for arm64, run under `run-as top.niunaijun.blackbox`. Test tre
 - The harvest journal is `pool/journal/harvest.log`; `recover` replays it and recreates missing placeholders.
 - Build: `phase0b/tools/dualfs-tool/build.sh` (NDK `aarch64-linux-android26-clang`).
 - The tool binary is a build output and is gitignored; the self-test is reproducible from the source.
+
+## dfaudit self-test
+
+`phase0b/tools/dfaudit` watches every directory under a root with one inotify watch each and prints:
+
+```text
+<time> <masks> <path> <placeholder|private>
+```
+
+Test: a harvested 64 KiB placeholder (`ph.bin`), a private file (`priv.bin`), and a new file (`new.bin`).
+
+| Action | Audit output |
+|---|---|
+| Read `ph.bin` | `OPEN ... ph.bin placeholder`, `ACCESS ... ph.bin placeholder` |
+| Create `new.bin` | `CREATE`, `OPEN`, `MODIFY`, `CLOSE_WRITE` with `private` |
+| Append to `priv.bin` | `OPEN`, `MODIFY`, `CLOSE_WRITE` with `private` |
+
+**Meaning:** under M8 the hook reads the blob, so a real guest read of a placeholder should not produce `IN_ACCESS` on the placeholder. If it does, that is a bypass (T6 case C18 / T10 evidence). The watcher marks each event `placeholder` or `private` by reading the xattr, so the audit can separate the two.
+
+Limits: one watch per directory (T3 could not read the inotify limit); if `inotify_add_watch` fails, the tool logs it and continues with the watches it has. Build: `phase0b/tools/dfaudit/build.sh`.

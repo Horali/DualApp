@@ -903,7 +903,8 @@ Excludes always win over includes. The hard excludes (`login_data` and the ident
 - **Step 1 (hook spike) passed.** PackLoader's native library installed Dobby inline hooks on `open`, `openat`, `__openat`, `fchmod`, `fopen` and `opendir` with **0 crashes**. 1M opens cost 3,071 ns/call baseline and 3,111 ns/call hooked: **+40 ns/call** (budget 1 µs). `__openat` caught **1,011,014** opens; `open` alone caught ~10k, so **`__openat` is the primary hook target**. Technique A selected; technique B (ByteHook) was not tested. See `phase0b/results/t5/t5-backend.txt`.
 - **Patches 0002 and 0003 written.** 0002 adds `NativeCore.enableDualFs` and the call in `BActivityThread.handleBindApplication`; 0003 adds `Bcore/src/main/cpp/dualfs/` (config, placeholder/xattr tag, copy-up, hooks). The engine builds, and **0001+0004+0005+0002+0003 apply cleanly to a fresh `89b5983`**.
 - **`dualfs-tool` self-test passed.** 101/101 harvest, 101/101 `verify-tree`, 101/101 rehydrate; the tree drops from 6,472 KiB to **412 KiB** and returns to 6,472 KiB after rehydrate. The tool runs under `run-as` on the engine UID. It also found the **4 KiB inode block** cost of the xattr tag (see the T3 note).
-- **Remaining:** `dfaudit`, Canary v0.3 attack matrix, PackLoader workloads, M9 spike, engine update (needs approval) and R7.
+- **`dfaudit` self-test passed.** Reading a placeholder produces `OPEN` + `ACCESS` with `placeholder`; creating/modifying private files produces `CREATE`/`OPEN`/`MODIFY`/`CLOSE_WRITE` with `private`. That is the bypass signal T6/T10 needs.
+- **Remaining:** Canary v0.3 attack matrix, PackLoader workloads, M9 spike, engine update (needs approval) and R7.
 
 ### T6 Storage conformance suite v2 (2 days)
 
