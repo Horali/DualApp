@@ -1,0 +1,560 @@
+diff --git a/Bcore/src/main/cpp/dualfs/CopyUp.cpp b/Bcore/src/main/cpp/dualfs/CopyUp.cpp
+new file mode 100644
+index 0000000..a347304
+--- /dev/null
++++ b/Bcore/src/main/cpp/dualfs/CopyUp.cpp
+@@ -0,0 +1,122 @@
++// DualFs: copy-up. Patch 0003 (new files).
++#include "DualFs.h"
++#include <fcntl.h>
++#include <unistd.h>
++#include <sys/stat.h>
++#include <sys/file.h>
++#include <sys/syscall.h>
++#include <time.h>
++#include <stdio.h>
++#include <string.h>
++#include <errno.h>
++#include <limits.h>
++
++namespace dualfs {
++
++static bool copyAll(int sfd, int dfd, off_t size) {
++    off_t off = 0;
++    bool ok = true;
++    while (off < size) {
++#ifdef __NR_copy_file_range
++        long n = syscall(__NR_copy_file_range, sfd, &off, dfd, nullptr,
++                         (size_t) (size - off), 0);
++#else
++        long n = -1;
++#endif
++        if (n <= 0) { ok = false; break; }
++    }
++    if (ok) return true;
++
++    // Fallback: 1 MiB read/write.
++    off = 0;
++    lseek(sfd, 0, SEEK_SET);
++    lseek(dfd, 0, SEEK_SET);
++    char buf[1 << 20];
++    while (off < size) {
++        ssize_t n = read(sfd, buf, sizeof(buf));
++        if (n <= 0) return false;
++        ssize_t w = 0;
++        while (w < n) {
++            ssize_t k = write(dfd, buf + w, (size_t) (n - w));
++            if (k <= 0) return false;
++            w += k;
++        }
++        off += n;
++    }
++    return true;
++}
++
++bool copyUp(const char *path) {
++    char blob[PATH_MAX];
++    off_t size;
++    if (!isPlaceholder(path, blob, sizeof(blob), &size)) return false;
++
++    struct stat st;
++    if (lstat(path, &st) != 0) return false;
++
++    char lockPath[PATH_MAX];
++    snprintf(lockPath, sizeof(lockPath), "%s/%ld", g_cfg.locks, (long) (st.st_ino % 64));
++    int lfd = realOpen(lockPath, O_CREAT | O_RDWR | O_CLOEXEC, 0600);
++    if (lfd < 0) { g_errors++; return false; }
++    flock(lfd, LOCK_EX);
++
++    if (!isPlaceholder(path, blob, sizeof(blob), &size)) {
++        flock(lfd, LOCK_UN);
++        close(lfd);
++        return false;
++    }
++
++    char tmp[PATH_MAX];
++    snprintf(tmp, sizeof(tmp), "%s/cu-%lu-%d-%ld", g_cfg.tmp,
++             (unsigned long) st.st_ino, (int) getpid(), (long) time(nullptr));
++    int sfd = realOpen(blob, O_RDONLY | O_CLOEXEC, 0);
++    int dfd = realOpen(tmp, O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, st.st_mode & 07777);
++    if (sfd < 0 || dfd < 0) {
++        if (sfd >= 0) close(sfd);
++        if (dfd >= 0) close(dfd);
++        unlink(tmp);
++        flock(lfd, LOCK_UN);
++        close(lfd);
++        g_errors++;
++        return false;
++    }
++
++    bool ok = copyAll(sfd, dfd, size);
++    if (ok) {
++        fsync(dfd);
++        struct timespec ts[2] = { st.st_atim, st.st_mtim };
++        futimens(dfd, ts);
++    }
++    close(sfd);
++    close(dfd);
++    if (!ok) {
++        unlink(tmp);
++        flock(lfd, LOCK_UN);
++        close(lfd);
++        g_errors++;
++        return false;
++    }
++
++    if (rename(tmp, path) != 0) {
++        unlink(tmp);
++        flock(lfd, LOCK_UN);
++        close(lfd);
++        g_errors++;
++        return false;
++    }
++
++    char dir[PATH_MAX];
++    snprintf(dir, sizeof(dir), "%s", path);
++    char *slash = strrchr(dir, '/');
++    if (slash) {
++        *slash = 0;
++        int df = realOpen(dir, O_RDONLY | O_DIRECTORY | O_CLOEXEC, 0);
++        if (df >= 0) { fsync(df); close(df); }
++    }
++    flock(lfd, LOCK_UN);
++    close(lfd);
++    g_copyups++;
++    return true;
++}
++
++}  // namespace dualfs
+diff --git a/Bcore/src/main/cpp/dualfs/DualFs.cpp b/Bcore/src/main/cpp/dualfs/DualFs.cpp
+new file mode 100644
+index 0000000..41fb378
+--- /dev/null
++++ b/Bcore/src/main/cpp/dualfs/DualFs.cpp
+@@ -0,0 +1,82 @@
++// DualFs: config, counters and start-up. Patch 0003 (new files).
++#include "DualFs.h"
++#include <android/log.h>
++#include <stdio.h>
++#include <string.h>
++#include <stdlib.h>
++#include <unistd.h>
++#include <fcntl.h>
++#include <dirent.h>
++#include <sys/stat.h>
++
++#define TAG "DUALFS"
++#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, TAG, __VA_ARGS__)
++
++namespace dualfs {
++
++Config g_cfg = {};
++std::atomic<long> g_opens(0), g_redirects(0), g_copyups(0), g_truncs(0), g_guards(0), g_errors(0);
++
++static char *trim(char *s) {
++    while (*s == ' ' || *s == '\t' || *s == '\r' || *s == '\n') s++;
++    char *e = s + strlen(s);
++    while (e > s && (e[-1] == ' ' || e[-1] == '\t' || e[-1] == '\r' || e[-1] == '\n')) *--e = 0;
++    return s;
++}
++
++static bool parseConfig(const char *path) {
++    FILE *f = fopen(path, "r");
++    if (!f) return false;
++    char line[1024];
++    while (fgets(line, sizeof(line), f)) {
++        char *eq = strchr(line, '=');
++        if (!eq) continue;
++        *eq = 0;
++        char *k = trim(line);
++        char *v = trim(eq + 1);
++        if (!strcmp(k, "pool")) snprintf(g_cfg.pool, sizeof(g_cfg.pool), "%s", v);
++        else if (!strcmp(k, "root")) snprintf(g_cfg.root, sizeof(g_cfg.root), "%s", v);
++        else if (!strcmp(k, "tmp")) snprintf(g_cfg.tmp, sizeof(g_cfg.tmp), "%s", v);
++        else if (!strcmp(k, "locks")) snprintf(g_cfg.locks, sizeof(g_cfg.locks), "%s", v);
++        else if (!strcmp(k, "pkg")) snprintf(g_cfg.pkg, sizeof(g_cfg.pkg), "%s", v);
++        else if (!strcmp(k, "user")) g_cfg.userId = atoi(v);
++    }
++    fclose(f);
++    return g_cfg.pool[0] && g_cfg.root[0] && g_cfg.tmp[0] && g_cfg.locks[0];
++}
++
++static void cleanTmp() {
++    DIR *d = opendir(g_cfg.tmp);
++    if (!d) return;
++    struct dirent *e;
++    int n = 0;
++    while ((e = readdir(d)) != nullptr) {
++        if (!strcmp(e->d_name, ".") || !strcmp(e->d_name, "..")) continue;
++        char p[1024];
++        snprintf(p, sizeof(p), "%s/%s", g_cfg.tmp, e->d_name);
++        if (unlink(p) == 0) n++;
++    }
++    closedir(d);
++    if (n) LOGI("cleaned %d orphan(s) from tmp", n);
++}
++
++bool enable(const char *configPath) {
++    if (g_cfg.loaded) return true;
++    if (!parseConfig(configPath)) {
++        LOGI("config parse failed: %s", configPath);
++        return false;
++    }
++    cleanTmp();
++    installHooks();
++    g_cfg.loaded = true;
++    LOGI("enabled: pkg=%s user=%d pool=%s root=%s", g_cfg.pkg, g_cfg.userId, g_cfg.pool, g_cfg.root);
++    return true;
++}
++
++void logStats() {
++    LOGI("stats opens=%ld redirects=%ld copyups=%ld truncs=%ld guards=%ld errors=%ld",
++         g_opens.load(), g_redirects.load(), g_copyups.load(), g_truncs.load(),
++         g_guards.load(), g_errors.load());
++}
++
++}  // namespace dualfs
+diff --git a/Bcore/src/main/cpp/dualfs/DualFs.h b/Bcore/src/main/cpp/dualfs/DualFs.h
+new file mode 100644
+index 0000000..7399d6c
+--- /dev/null
++++ b/Bcore/src/main/cpp/dualfs/DualFs.h
+@@ -0,0 +1,39 @@
++#ifndef DUALFS_H
++#define DUALFS_H
++
++#include <stdint.h>
++#include <stddef.h>
++#include <sys/types.h>
++#include <atomic>
++
++namespace dualfs {
++
++struct Config {
++    char pool[512];
++    char root[512];
++    char tmp[512];
++    char locks[512];
++    char pkg[256];
++    int userId;
++    bool loaded;
++};
++
++extern Config g_cfg;
++extern std::atomic<long> g_opens;
++extern std::atomic<long> g_redirects;
++extern std::atomic<long> g_copyups;
++extern std::atomic<long> g_truncs;
++extern std::atomic<long> g_guards;
++extern std::atomic<long> g_errors;
++
++bool enable(const char *configPath);
++bool isPlaceholder(const char *path, char *blobPath, size_t blobPathSize, off_t *size);
++bool copyUp(const char *path);
++bool removeTag(const char *path);
++int realOpen(const char *path, int flags, mode_t mode);
++void installHooks();
++void logStats();
++
++}  // namespace dualfs
++
++#endif
+diff --git a/Bcore/src/main/cpp/dualfs/HookBackend.cpp b/Bcore/src/main/cpp/dualfs/HookBackend.cpp
+new file mode 100644
+index 0000000..e5ceb40
+--- /dev/null
++++ b/Bcore/src/main/cpp/dualfs/HookBackend.cpp
+@@ -0,0 +1,236 @@
++// DualFs: libc hooks. Patch 0003 (new files).
++#include "DualFs.h"
++#include <android/log.h>
++#include <fcntl.h>
++#include <unistd.h>
++#include <dlfcn.h>
++#include <stdarg.h>
++#include <stdio.h>
++#include <string.h>
++#include <errno.h>
++#include <limits.h>
++#include <pthread.h>
++#include <sys/stat.h>
++#include <sys/syscall.h>
++#include <sys/xattr.h>
++#include "Dobby/dobby.h"
++#include "xdl.h"
++
++#define TAG "DUALFS"
++#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, TAG, __VA_ARGS__)
++
++namespace dualfs {
++
++static int (*orig_open)(const char *, int, ...) = nullptr;
++static int (*orig_openat)(int, const char *, int, ...) = nullptr;
++static int (*orig___openat)(int, const char *, int, int) = nullptr;
++static int (*orig_fchmod)(int, mode_t) = nullptr;
++static int (*orig_truncate)(const char *, off_t) = nullptr;
++static int (*orig_chmod)(const char *, mode_t) = nullptr;
++
++int realOpen(const char *path, int flags, mode_t mode) {
++    if (orig_open) return orig_open(path, flags, mode);
++    return (int) syscall(SYS_openat, AT_FDCWD, path, flags, (int) mode);
++}
++
++static int realOpenAt(int dirfd, const char *path, int flags, mode_t mode) {
++    if (orig___openat) return orig___openat(dirfd, path, flags, (int) mode);
++    if (orig_openat) return orig_openat(dirfd, path, flags, mode);
++    return (int) syscall(SYS_openat, dirfd, path, flags, (int) mode);
++}
++
++static int realFchmod(int fd, mode_t mode) {
++    if (orig_fchmod) return orig_fchmod(fd, mode);
++    return (int) syscall(SYS_fchmod, fd, mode);
++}
++
++static int realTruncate(const char *path, off_t len) {
++    if (orig_truncate) return orig_truncate(path, len);
++    return (int) syscall(SYS_truncate, path, len);
++}
++
++static int realChmod(const char *path, mode_t mode) {
++    if (orig_chmod) return orig_chmod(path, mode);
++    return (int) syscall(SYS_fchmodat, AT_FDCWD, path, mode, 0);
++}
++
++struct BlobEntry {
++    int fd;
++    char path[PATH_MAX];
++};
++
++static BlobEntry g_blobs[256];
++static pthread_mutex_t g_blobLock = PTHREAD_MUTEX_INITIALIZER;
++
++static void recordBlob(int fd, const char *path) {
++    pthread_mutex_lock(&g_blobLock);
++    for (auto &e : g_blobs) {
++        if (e.fd == 0) {
++            e.fd = fd;
++            snprintf(e.path, sizeof(e.path), "%s", path);
++            break;
++        }
++    }
++    pthread_mutex_unlock(&g_blobLock);
++}
++
++static bool lookupBlob(int fd, char *out, size_t n) {
++    char proc[64];
++    snprintf(proc, sizeof(proc), "/proc/self/fd/%d", fd);
++    char target[PATH_MAX];
++    ssize_t len = readlink(proc, target, sizeof(target) - 1);
++    if (len <= 0) return false;
++    target[len] = 0;
++    bool found = false;
++    pthread_mutex_lock(&g_blobLock);
++    for (auto &e : g_blobs) {
++        if (e.fd == fd && !strcmp(e.path, target)) {
++            snprintf(out, n, "%s", e.path);
++            found = true;
++            break;
++        }
++    }
++    pthread_mutex_unlock(&g_blobLock);
++    return found;
++}
++
++static int do_open(const char *path, int flags, mode_t mode, int dirfd, bool is_at) {
++    char blob[PATH_MAX];
++    off_t size;
++    if (isPlaceholder(path, blob, sizeof(blob), &size)) {
++        g_opens++;
++        int acc = flags & O_ACCMODE;
++        bool write = (acc == O_WRONLY || acc == O_RDWR) || (flags & O_APPEND);
++        if (flags & O_TRUNC) {
++            int fd = is_at ? realOpenAt(dirfd, path, flags, mode)
++                           : realOpen(path, flags, mode);
++            if (fd >= 0) removeTag(path);
++            g_truncs++;
++            return fd;
++        }
++        if (!write) {
++            int fd = realOpen(blob, O_RDONLY | (flags & O_CLOEXEC), 0);
++            if (fd >= 0) {
++                recordBlob(fd, blob);
++                g_redirects++;
++            }
++            return fd;
++        }
++        if (!copyUp(path)) {
++            errno = EIO;
++            g_errors++;
++            return -1;
++        }
++        return is_at ? realOpenAt(dirfd, path, flags, mode)
++                     : realOpen(path, flags, mode);
++    }
++    return is_at ? realOpenAt(dirfd, path, flags, mode)
++                 : realOpen(path, flags, mode);
++}
++
++static int h_open(const char *path, int flags, ...) {
++    mode_t mode = 0;
++    if (flags & O_CREAT) {
++        va_list ap;
++        va_start(ap, flags);
++        mode = va_arg(ap, mode_t);
++        va_end(ap);
++    }
++    return do_open(path, flags, mode, AT_FDCWD, false);
++}
++
++static int h_openat(int dirfd, const char *path, int flags, ...) {
++    mode_t mode = 0;
++    if (flags & O_CREAT) {
++        va_list ap;
++        va_start(ap, flags);
++        mode = va_arg(ap, mode_t);
++        va_end(ap);
++    }
++    return do_open(path, flags, mode, dirfd, true);
++}
++
++static int h___openat(int dirfd, const char *path, int flags, int mode) {
++    return do_open(path, flags, (mode_t) mode, dirfd, true);
++}
++
++static int h_fchmod(int fd, mode_t mode) {
++    char ph[PATH_MAX];
++    if (lookupBlob(fd, ph, sizeof(ph))) {
++        int pfd = realOpen(ph, O_RDONLY | O_CLOEXEC, 0);
++        if (pfd >= 0) {
++            int r = realFchmod(pfd, mode);
++            close(pfd);
++            g_guards++;
++            return r;
++        }
++    }
++    return realFchmod(fd, mode);
++}
++
++static int h_truncate(const char *path, off_t len) {
++    char blob[PATH_MAX];
++    off_t size;
++    if (isPlaceholder(path, blob, sizeof(blob), &size)) {
++        if (len == 0) {
++            int r = realTruncate(path, 0);
++            if (r == 0) removeTag(path);
++            g_truncs++;
++            return r;
++        }
++        if (!copyUp(path)) {
++            errno = EIO;
++            g_errors++;
++            return -1;
++        }
++    }
++    return realTruncate(path, len);
++}
++
++static int h_chmod(const char *path, mode_t mode) {
++    int fd;
++    if (sscanf(path, "/proc/self/fd/%d", &fd) == 1) {
++        char ph[PATH_MAX];
++        if (lookupBlob(fd, ph, sizeof(ph))) {
++            g_guards++;
++            return realChmod(ph, mode);
++        }
++    }
++    return realChmod(path, mode);
++}
++
++static void hook(const char *name, void *target, void *repl, void **orig) {
++    if (!target) {
++        LOGI("hook %s: not found", name);
++        return;
++    }
++    void *tramp = nullptr;
++    int r = DobbyHook(target, repl, &tramp);
++    if (r == 0) {
++        *orig = tramp;
++        LOGI("hook %s: OK", name);
++    } else {
++        LOGI("hook %s: FAIL r=%d", name, r);
++        g_errors++;
++    }
++}
++
++void installHooks() {
++    void *h = dlopen("libc.so", RTLD_NOW);
++    orig_open = (int (*)(const char *, int, ...)) dlsym(h, "open");
++    orig_openat = (int (*)(int, const char *, int, ...)) dlsym(h, "openat");
++    orig_fchmod = (int (*)(int, mode_t)) dlsym(h, "fchmod");
++    orig_truncate = (int (*)(const char *, off_t)) dlsym(h, "truncate");
++    orig_chmod = (int (*)(const char *, mode_t)) dlsym(h, "chmod");
++    void *xh = xdl_open("libc.so", XDL_DEFAULT);
++    void *sym = xh ? xdl_dsym(xh, "__openat", nullptr) : nullptr;
++
++    hook("open", (void *) orig_open, (void *) h_open, (void **) &orig_open);
++    hook("openat", (void *) orig_openat, (void *) h_openat, (void **) &orig_openat);
++    hook("__openat", sym, (void *) h___openat, (void **) &orig___openat);
++    hook("fchmod", (void *) orig_fchmod, (void *) h_fchmod, (void **) &orig_fchmod);
++    hook("truncate", (void *) orig_truncate, (void *) h_truncate, (void **) &orig_truncate);
++    hook("chmod", (void *) orig_chmod, (void *) h_chmod, (void **) &orig_chmod);
++}
++
++}  // namespace dualfs
+diff --git a/Bcore/src/main/cpp/dualfs/Placeholder.cpp b/Bcore/src/main/cpp/dualfs/Placeholder.cpp
+new file mode 100644
+index 0000000..3e82e58
+--- /dev/null
++++ b/Bcore/src/main/cpp/dualfs/Placeholder.cpp
+@@ -0,0 +1,51 @@
++// DualFs: placeholder tag and test. Patch 0003 (new files).
++#include "DualFs.h"
++#include <sys/xattr.h>
++#include <sys/stat.h>
++#include <stdio.h>
++#include <string.h>
++#include <stdlib.h>
++#include <unistd.h>
++#include <limits.h>
++
++namespace dualfs {
++
++static const char *kTag = "user.dualapp.blob";
++
++static bool underRoot(const char *path) {
++    size_t n = strlen(g_cfg.root);
++    return n > 0 && strncmp(path, g_cfg.root, n) == 0;
++}
++
++static bool readTag(const char *path, char *sha, size_t shaSize, off_t *size) {
++    char buf[256];
++    ssize_t n = getxattr(path, kTag, buf, sizeof(buf) - 1);
++    if (n <= 0) return false;
++    buf[n] = 0;
++    char *c = strchr(buf, ':');
++    if (!c) return false;
++    *c = 0;
++    snprintf(sha, shaSize, "%s", buf);
++    *size = strtoll(c + 1, nullptr, 10);
++    return *size >= 0;
++}
++
++bool isPlaceholder(const char *path, char *blobPath, size_t blobPathSize, off_t *size) {
++    if (!g_cfg.loaded || !path || !underRoot(path)) return false;
++    struct stat st;
++    if (lstat(path, &st) != 0) return false;
++    if (!S_ISREG(st.st_mode) || st.st_blocks != 0) return false;
++    char sha[80];
++    off_t tagSize;
++    if (!readTag(path, sha, sizeof(sha), &tagSize)) return false;
++    if (strlen(sha) != 64 || tagSize != st.st_size) return false;
++    snprintf(blobPath, blobPathSize, "%s/blobs/%c%c/%s", g_cfg.pool, sha[0], sha[1], sha);
++    *size = st.st_size;
++    return true;
++}
++
++bool removeTag(const char *path) {
++    return removexattr(path, kTag) == 0;
++}
++
++}  // namespace dualfs

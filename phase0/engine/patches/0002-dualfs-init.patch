@@ -1,0 +1,82 @@
+diff --git a/Bcore/src/main/cpp/Android.mk b/Bcore/src/main/cpp/Android.mk
+index 4ddfa1e..144245d 100644
+--- a/Bcore/src/main/cpp/Android.mk
++++ b/Bcore/src/main/cpp/Android.mk
+@@ -42,7 +42,11 @@ Hook/VMClassLoaderHook.cpp \
+ Hook/UnixFileSystemHook.cpp \
+ Hook/BinderHook.cpp \
+ Hook/BaseHook.cpp \
+-JniHook/JniHook.cpp
++JniHook/JniHook.cpp \
++dualfs/DualFs.cpp \
++dualfs/Placeholder.cpp \
++dualfs/CopyUp.cpp \
++dualfs/HookBackend.cpp
+ 
+ LOCAL_C_INCLUDES += $(LOCAL_PATH)
+ LOCAL_CFLAGS += -Wno-error=format-security -fvisibility=hidden -ffunction-sections -fdata-sections -w -std=c++17
+diff --git a/Bcore/src/main/cpp/BoxCore.cpp b/Bcore/src/main/cpp/BoxCore.cpp
+index 1a6a997..5deac0b 100644
+--- a/Bcore/src/main/cpp/BoxCore.cpp
++++ b/Bcore/src/main/cpp/BoxCore.cpp
+@@ -15,6 +15,7 @@
+ #include <Hook/RuntimeHook.h>
+ #include "Utils/HexDump.h"
+ #include "hidden_api.h"
++#include <dualfs/DualFs.h>
+ 
+ struct {
+     JavaVM *vm;
+@@ -131,12 +132,20 @@ bool disableResourceLoading(JNIEnv *env, jclass clazz) {
+     return true;
+ }
+ 
++bool enableDualFs(JNIEnv *env, jclass clazz, jstring config_path) {
++    const char *path = env->GetStringUTFChars(config_path, JNI_FALSE);
++    bool ok = dualfs::enable(path);
++    env->ReleaseStringUTFChars(config_path, path);
++    return ok;
++}
++
+ static JNINativeMethod gMethods[] = {
+         {"disableHiddenApi", "()Z",                               (void *) disableHiddenApi},
+         {"disableResourceLoading", "()Z",                         (void *) disableResourceLoading},
+         {"hideXposed", "()V",                                     (void *) hideXposed},
+         {"addIORule",  "(Ljava/lang/String;Ljava/lang/String;)V", (void *) addIORule},
+         {"enableIO",   "()V",                                     (void *) enableIO},
++        {"enableDualFs", "(Ljava/lang/String;)Z",                 (void *) enableDualFs},
+         {"init",       "(I)V",                                    (void *) init},
+ };
+ 
+diff --git a/Bcore/src/main/java/top/niunaijun/blackbox/core/NativeCore.java b/Bcore/src/main/java/top/niunaijun/blackbox/core/NativeCore.java
+index 1053b7e..f5cbfda 100644
+--- a/Bcore/src/main/java/top/niunaijun/blackbox/core/NativeCore.java
++++ b/Bcore/src/main/java/top/niunaijun/blackbox/core/NativeCore.java
+@@ -30,6 +30,8 @@ public class NativeCore {
+ 
+     public static native void enableIO();
+ 
++    public static native boolean enableDualFs(String configPath);
++
+     public static native void addIORule(String targetPath, String relocatePath);
+ 
+     public static native void hideXposed();
+--- a/Bcore/src/main/java/top/niunaijun/blackbox/app/BActivityThread.java
++++ b/Bcore/src/main/java/top/niunaijun/blackbox/app/BActivityThread.java
+@@ -404,6 +404,16 @@
+         assert packageContext != null;
+         IOCore.get().enableRedirect(packageContext);
+ 
++        try {
++            File dualFsConfig = new File(BlackBoxCore.getContext().getExternalFilesDir("blackbox"),
++                    "dualfs/inst/" + getUserId() + "/" + packageName + "/config");
++            if (dualFsConfig.exists()) {
++                NativeCore.enableDualFs(dualFsConfig.getAbsolutePath());
++            }
++        } catch (Throwable t) {
++            Slog.w(TAG, "DualFs init failed: " + t);
++        }
++
+         AppBindData bindData = new AppBindData();
+         bindData.appInfo = applicationInfo;
+         bindData.processName = processName;
