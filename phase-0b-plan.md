@@ -767,6 +767,20 @@ Run under the engine UID via `run-as` (domain `runas_app`), and repeat the key c
 
 **Clean-up:** delete the probe folders. **Output:** `phase0b/scripts/fs-probe.sh`, `t3-fs-probe.txt` with the decision table
 
+**T3 result (2026-11-15, [`phase0b/results/t3/t3-fs-probe.txt`](phase0b/results/t3/t3-fs-probe.txt)):**
+
+- **Tag storage: xattr.** `user.dualapp.blob` can be set and read on the external path from the engine UID and from a guest, and it survives a rename. No index fallback is needed.
+- **Pool location: external.** L-ext and L-guest are on the FUSE mount (`st_dev=182`); internal storage is f2fs (`st_dev=65099`). A raw `rename(2)` across them fails with `EXDEV`, so the pool must share the trees' mount. The planned path already does.
+- **No need to move MLBB's external data to internal.** Sparse files, xattrs, inotify and `copy_file_range` all work on the external path, so no engine behavior change and no cached-path breakage (N1).
+- **Sparse placeholders work:** a 64 MiB sparse file has `st_blocks=0` on L-ext and in the guest, and reads back zeros.
+- **Inode cost:** 10,000 placeholders cost 40,424 KiB, i.e. **~4.04 KiB each** (pass, ≤ 8 KiB).
+- **Symlinks are denied on the external path**, so M1 (symlink farm) is impossible there. M8 does not use symlinks.
+- **The two M8 guards are required:** a guest can `fchmod` a read-only handle and reopen it for writing through `/proc/self/fd`.
+- **inotify events work** on L-ext and in the guest. The watch limits are not readable (SELinux), so T4 must count MLBB's folders.
+- **`copy_file_range`:** 64 MiB in 83 ms (767 MB/s) from the guest.
+- **`io_uring_setup` is blocked fatally:** Android's seccomp policy kills the process with `SIGSYS` (syscall 425), not `EPERM`.
+- **`RLIMIT_NOFILE`:** 32768 soft / 524288 hard, same in the guest and under `run-as`.
+
 ### T4 MLBB inventory (read-only, 1 day)
 
 Your MLBB and clone A are only read, except step 6, which runs clone A.

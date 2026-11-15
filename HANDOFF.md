@@ -28,7 +28,13 @@ The clone engine is **NewBlackbox** (open source, upstream commit `89b5983`). It
   - The HiddenAPI exemption fails on Android 17; UnixFileSystem hooks 8 of 9 (`canonicalize0` changed); GmsProxy is inactive.
   - `ANDROID_ID` is identical in the normal app and Users 0/1; a native hard-coded `/sdcard` write escapes the container.
   - **New engine bug:** the `:black` process is frozen and killed by Android's app freezer, which can crash a guest's `startActivity`. Needs a T12/T13 fix.
-- **Not started:** T3–T13.
+- **T3 (filesystem probe) is DONE** (2026-11-15). See `phase0b/results/t3/t3-fs-probe.txt`.
+  - **xattr tag storage works** on the external path and from a guest; it survives rename.
+  - **The pool must live on the external FUSE mount** (`st_dev=182`); cross-mount `rename(2)` is `EXDEV`.
+  - Sparse placeholders cost **0 blocks**; 10,000 placeholders cost **~4.04 KiB each**.
+  - Symlinks are denied on external; `io_uring_setup` is killed by seccomp (`SIGSYS`).
+  - No need to move MLBB's external data to internal storage.
+- **Not started:** T4–T13.
 
 ## What to do next
 
@@ -36,9 +42,8 @@ Follow `phase-0b-plan.md` Section 5 task by task. Each task has a procedure, del
 
 The suggested order is:
 
-1. **T3** (filesystem probe).
-2. **T4** (MLBB inventory).
-3. **T5** onward.
+1. **T4** (MLBB inventory).
+2. **T5** onward.
 
 Record each task's text results under `phase0b/results/<task>/`. Add a short "T<n> result" note under that task in `phase-0b-plan.md`, as was done for T1.
 

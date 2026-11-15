@@ -1,0 +1,124 @@
+# T3 filesystem capability probe
+
+Date: 2026-11-15. Device: SM-S936B, Android 17 / API 37, One UI 9.
+Engine: NewBlackbox `89b5983` + patches 0001 + 0004 + 0005, UID 10057.
+
+**Method:** `phase0b/scripts/fs-probe.sh` pipes `t3-device.sh` into
+`adb shell run-as top.niunaijun.blackbox sh -s` (domain `runas_app`), then the
+guest side runs in a Canary clone (domain `untrusted_app_27`) via the T3 probe
+in Canary v0.3 (key **T** on the env page). The probe creates and deletes its
+own folders under `blackbox/dualfs-probe/` and the guest's `files/t3probe/`.
+
+## Decision table
+
+| Decision | Result | Why |
+|---|---|---|
+| **Tag storage** | **xattr** (`user.dualapp.blob`) | `setfattr` / `getfattr` work on L-ext and from the guest; the tag survives a rename. No index fallback needed. |
+| **Pool location** | **external** (engine external files, same FUSE mount as the trees) | L-ext and L-guest have `st_dev=182`; L-int has `st_dev=65099`. A raw `rename(2)` across them fails with `EXDEV`. Harvest moves files, so the pool must share the trees' mount. |
+| **Move MLBB's external data to internal?** | **No** | Sparse files, xattrs, inotify and `copy_file_range` all work on the external path. No engine behavior change, so no cached-path breakage (N1). |
+
+## Checks
+
+| # | Check | Result | Verdict |
+|---|---|---|---|
+| 1 | Filesystem type and mount | L-int: **f2fs** (`0xf2f52010`), `st_dev=65099`. L-ext: **FUSE** (`0x65735546`), `st_dev=182`. L-guest: FUSE, `st_dev=182`. | Recorded |
+| 2 | Sparse 64 MiB file | L-ext: `du -k` = **0**, first bytes zero. L-guest: `st_size=67108864`, **`st_blocks=0`**, zeros read back. | **Pass** (0 blocks) |
+| 3 | Small files | 1 / 3 / 4096 B → **4 KiB** allocated; 64 KiB → 64 KiB. | Recorded; `minFileBytes` 64 KiB is right |
+| 4 | xattrs | L-ext: set/get OK, survives rename. L-guest: set/get OK, survives rename. | **Pass** (xattr works) |
+| 5 | Rename | Same folder: OK. L-guest external → internal: **`EXDEV` (errno 18)**. | Recorded; pool must be on the external mount |
+| 6 | Inode cost, 10,000 placeholders | `df` used **40,424 KiB** → **~4.04 KiB per placeholder**. | **Pass** (≤ 8 KiB) |
+| 6b | 10,000 symlinks | **Denied** on L-ext (`Permission denied`). | Recorded; M1 symlink farm is impossible on external |
+| 7 | Attack vector: `fchmod` on a read-only handle, then reopen `/proc/self/fd/N` | `fchmod=ALLOWED`, `reopen=ALLOWED`. | Recorded; the M8 guards are required |
+| 8 | inotify | Limits: not readable (SELinux `Permission denied`). Events: **delivered** on L-ext (`n`, `r`, `0`) and in the guest (`watch=1 read=96`). | **Pass** for events; limit unknown |
+| 9 | `copy_file_range` | Guest: 64 MiB in **83 ms = 767 MB/s** (first run 102 ms = 628 MB/s). `dd` 256 MiB baseline ~1 GB/s (page cache). | **Pass** (fast) |
+| 10 | `io_uring_setup` from a guest | **Blocked by seccomp**: `SIGSYS`, `SYS_SECCOMP`, syscall 425. The process is **killed**, not given `EPERM`. | Recorded; fatal if called |
+| 11 | `RLIMIT_NOFILE` | Guest and run-as: **32768 soft / 524288 hard**. | Recorded |
+
+## Raw output: device side (trimmed)
+
+```text
+== 1. filesystem type, mount and st_dev ==
+path=.../dualfs-probe type=f2fs hex=f2f52010 bsize=4096
+path=.../files/blackbox/dualfs-probe type=0x65735546 hex=65735546 bsize=4096
+path=.../dualfs-probe dev=65099 devhex=fe4b
+path=.../files/blackbox/dualfs-probe dev=182 devhex=b6
+10210 135 0:182 / /storage/emulated rw,... - fuse /dev/fuse ...
+
+== 2. sparse file (64 MiB) ==
+du -k: 0   .../sparse.bin
+first bytes:  00 00 00 00
+
+== 3. small files (allocated KiB) ==
+size=1 4
+size=3 4
+size=4096 4
+size=65536 64
+
+== 4. xattrs ==
+setfattr exit=0
+user.dualapp.blob
+-- after rename --
+user.dualapp.blob
+
+== 5. rename ==
+same-fs rename exit=0
+cross L-ext to L-int exit=0   (mv copied: raw rename is tested in the guest, EXDEV)
+
+== 6. inode cost: 10,000 placeholders ==
+/dev/fuse 229521408 215127496 14262840 94% /storage/emulated
+/dev/fuse 229521408 215167920 14222416 94% /storage/emulated   (40,424 KiB / 10,000 = 4.04 KiB)
+
+== 6b. inode cost: 10,000 symlinks ==
+symlinks: DENIED on L-ext (permission denied)
+
+== 8. inotify ==
+max_user_watches: Permission denied
+max_user_instances: Permission denied
+-- events --
+n  .../watch  event
+r  .../watch  event
+0  .../watch  event
+
+== 9. copy baseline: 256 MiB via dd ==
+268435456 bytes copied, 0.248 s, 1.0 G/s
+268435456 bytes copied, 0.285 s, 898 M/s
+
+== 11. RLIMIT_NOFILE ==
+32768
+```
+
+## Raw output: guest side (CANARY_T3)
+
+```text
+intDir=.../blackbox/data/user/0/dev.dualapp.canary/files/t3probe
+extDir=.../storage/emulated/0/Android/data/dev.dualapp.canary/files/t3probe
+fs.int=type=0xf2f52010 bsize=4096 blocks=57380352 bfree=3598043
+fs.ext=type=0x65735546 bsize=4096 blocks=57380352 bfree=3598043
+dev.int=65099
+dev.ext=182
+sparse.size=67108864 blocks=0 zeros=true
+small.size=1 blocks=8
+small.size=3 blocks=8
+small.size=4096 blocks=8
+small.size=65536 blocks=128
+xattr.set=OK
+xattr.get=test
+xattr.rename=true
+xattr.afterRename=test
+rename.sameFs=OK
+rename.cross=FAIL errno=18 (EXDEV)
+fchmodReopen=fchmod=ALLOWED errno=2; reopen=ALLOWED errno=2 (No such file or directory)
+copy_file_range=bytes=67108864 ms=83 MBps=767
+inotify=watch=1 read=96
+rlimit=cur=32768 max=524288
+T3 DONE
+```
+
+## Findings that affect later tasks
+
+- **M8 is viable on the external path.** Sparse placeholders cost 0 data blocks, xattrs work as the tag, and `copy_file_range` is fast enough for copy-up. This is the best possible T3 result for the storage design.
+- **The pool must live on the external FUSE mount**, next to the trees, because cross-mount `rename(2)` is `EXDEV`. The planned pool path (`<engine external files>/blackbox/dualfs/pool/...`) already satisfies this.
+- **Symlinks are impossible on the external path.** M1 (symlink farm) is dead there; M8 does not use symlinks.
+- **`io_uring` is fatal, not just blocked.** Android's seccomp policy kills a guest that calls `io_uring_setup`. MLBB and Instagram are unlikely to use it, but the audit should note it.
+- **The inotify watch limit is not readable** from the app or the shell on this firmware. Events work; if the limit turns out to be too small in T4, `dfaudit` can watch a rotating subset of folders.
+- The two guards M8 needs are confirmed: a guest can `fchmod` a read-only handle and reopen it for writing through `/proc/self/fd`. T6 cases C4/C5 must cover exactly that.
