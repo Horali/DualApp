@@ -40,7 +40,11 @@ The clone engine is **NewBlackbox** (open source, upstream commit `89b5983`). It
   - 4-minute run: 8 files changed in place, 8,042 new files (~462 MiB) downloaded; order UI → Art → Audio → Video.
   - N1 confirmed: preferences and `base_loadres_version_info` cache the instance's own absolute root.
   - Draft profile: `phase0b/results/t4/mlbb-sharing-profile.json`.
-- **Not started:** T5–T13.
+- **T5 (M8 prototype) is IN PROGRESS** (2026-11-15).
+  - **Hook spike passed:** all six Dobby hooks installed, 0 crashes, **+40 ns/call**, `__openat` caught all 1,011,014 opens. Technique A selected. See `phase0b/results/t5/t5-backend.txt`.
+  - **Patches 0002 and 0003 written:** `NativeCore.enableDualFs` + `BActivityThread` call, and `Bcore/src/main/cpp/dualfs/` (config, placeholder, copy-up, hooks). The engine builds; 0001+0004+0005+0002+0003 apply cleanly to a fresh `89b5983`.
+  - **Remaining:** `dualfs-tool`, `dfaudit`, Canary v0.3 attack matrix, PackLoader workloads, M9 spike, engine update (needs approval) and R7.
+- **Not started:** T6–T13.
 
 ## What to do next
 
@@ -48,7 +52,7 @@ Follow `phase-0b-plan.md` Section 5 task by task. Each task has a procedure, del
 
 The suggested order is:
 
-1. **T5** (build the M8 prototype and the hook-technique spike).
+1. **Finish T5** (`dualfs-tool`, `dfaudit`, Canary attack matrix, PackLoader workloads, M9 spike, engine update).
 2. **T6–T13** after it.
 
 Record each task's text results under `phase0b/results/<task>/`. Add a short "T<n> result" note under that task in `phase-0b-plan.md`, as was done for T1.

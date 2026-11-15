@@ -897,6 +897,12 @@ Excludes always win over includes. The hard excludes (`login_data` and the ident
 
 **Output:** `engine/patches/0002-*`, `0003-*`, `phase0b/tools/dualfs-tool/`, `phase0b/tools/dfaudit/`, Canary v0.3, `phase0b/apps/packloader/`, `phase0b/apps/poolhost/`, `t5-backend.txt`, `t5-m9-spike.txt`, build logs
 
+**T5 progress (2026-11-15):**
+
+- **Step 1 (hook spike) passed.** PackLoader's native library installed Dobby inline hooks on `open`, `openat`, `__openat`, `fchmod`, `fopen` and `opendir` with **0 crashes**. 1M opens cost 3,071 ns/call baseline and 3,111 ns/call hooked: **+40 ns/call** (budget 1 µs). `__openat` caught **1,011,014** opens; `open` alone caught ~10k, so **`__openat` is the primary hook target**. Technique A selected; technique B (ByteHook) was not tested. See `phase0b/results/t5/t5-backend.txt`.
+- **Patches 0002 and 0003 written.** 0002 adds `NativeCore.enableDualFs` and the call in `BActivityThread.handleBindApplication`; 0003 adds `Bcore/src/main/cpp/dualfs/` (config, placeholder/xattr tag, copy-up, hooks). The engine builds, and **0001+0004+0005+0002+0003 apply cleanly to a fresh `89b5983`**.
+- **Remaining:** `dualfs-tool`, `dfaudit`, Canary v0.3 attack matrix, PackLoader workloads, M9 spike, engine update (needs approval) and R7.
+
 ### T6 Storage conformance suite v2 (2 days)
 
 **Setup:**
