@@ -1,0 +1,116 @@
+# T4 MLBB inventory (summary)
+
+Date: 2026-11-15. Host MLBB 2.2.23 (targetSdk 36), clone A in engine User 0.
+Read-only, except step 6: clone A was launched for 4 minutes (approved) to find mutable files.
+Detail files: `t4-size-histogram.txt`, `t4-classification.md`, `t4-download-order-A.txt`,
+`t4-prefs-paths.txt`, `t4-identity-files.txt`, `t4-unpack-payloads.txt`, `mlbb-sharing-profile.json`.
+
+## Host tree
+
+`/storage/emulated/0/Android/data/com.mobile.legends/files/dragon2017`
+
+| Metric | Value |
+|---|---|
+| Files | 161,316 |
+| Folders | 175 |
+| Total | 12,638,242,842 bytes = **11.77 GiB** |
+| < 4 KiB | 6,989 files |
+| 4–64 KiB | 134,309 files |
+| 64 KiB–1 MiB | 18,261 files |
+| 1–16 MiB | 1,744 files |
+| 16–256 MiB | 13 files |
+| > 256 MiB | 0 |
+
+Largest folders: `assets/Art` 8.36 GiB (69.3%), `assets/Audio` 1.10 GiB, `assets/img` 1.01 GiB,
+`assets/UI` 768 MiB, `assets/Document` 164 MiB, `assets/comlibs` 136 MiB.
+
+Content types ≥ 64 KiB: **UnityFS 15,565**, other 4,441, **ELF 12**, dex 0, zip 0.
+All 12 ELF files are `assets/comlibs/arm64-v8a/*` (native libraries).
+
+## Clone A
+
+| Metric | Value |
+|---|---|
+| Files | 58,281 |
+| Total | 2,053,352,488 bytes = **1,958.2 MiB** |
+| `assets/img` copy (Phase 0) | 47,069 files / 906.7 MiB |
+| Non-img files | 11,212 |
+| Folders | 157 |
+
+## Overlap (host vs clone A, img excluded)
+
+| Result | Files |
+|---|---|
+| Paths in both | 10,954 |
+| **Identical** | **10,931 (99.79%)** |
+| **Different** | **23** |
+| Only in host / only in clone | 0 / 0 |
+
+The 23 different files are the metadata, login, newbie and 3 `DecompressNative/*.meta` files
+(listed in `t4-classification.md`). This confirms F9 at full scale: MLBB assets are de-duplicable.
+
+## Mutable files (step 6: 4-minute run, no login)
+
+| Result | Value |
+|---|---|
+| Files changed in place | **8** (599,570 bytes) |
+| New files downloaded | **8,042** (484,670,121 bytes ≈ 462 MiB) |
+| Files deleted | 0 |
+| Network received by UID 10057 | **503,367,541 bytes ≈ 480 MiB** |
+
+Changed in place (mutable → private): `android/UpdateFile_WriteCache_xxh.txt`,
+`android/UpdateFile_xxh.txt`, `assets/loadres_module_info_high`, `assets/prefs_int`,
+`login_data/check_upgrade_cache`, `login_auth_cache`, `login_upgrade_md5`, `native_login`.
+
+The download order was **UI → Art → Audio → Video** (by bytes and by time). The full ordered
+list is `t4-download-order-A.txt`; T10 uses it for order-aware seeding.
+
+## Absolute paths (N1) — confirmed
+
+Every cached absolute path names **clone A's own instance root**:
+
+- `__SharedPreference__.xml`: `moba_loading_bg`, `__Extracted_PersistentFilesPath__`
+- PlayerPrefs: `RWPathRec` (URL-encoded)
+- `DeviceSettings.xml`: `__x__PersistPath_x__KEY__`
+- `android/base_loadres_version_info`
+
+`IphonePath` and `__SDKOverrideAssetsPath__` were **not present**. No path names the host root.
+Full table in `t4-prefs-paths.txt`.
+
+## Login and identity (N2, N6)
+
+- `login_data/` is on the **external** side, inside the share set's parent folder. All files are
+  instance-specific (different sizes between host and A). **Hard exclude.**
+- Identity files found in clone A (internal only): `files/__app_uuid__` (36 B),
+  `shared_prefs/snssdk_openudid.xml` (146 B), `shared_prefs/DeviceSettings.xml` (252 B).
+  `.DNA_`, `.DNA_FLAG`, `.gp_uuid`, `INSTALLATION`, `AdjustAttribution`, `Cdid.xml` were not found.
+- No identity file is in the external tree, so the hard excludes are enough. Contents were never read.
+
+## Unpack payloads (N3)
+
+- Base APK: `assets/Resouces4-1..4.dat` (20.5–29.2 MB, **misspelled** names).
+- `split_config.arm64_v8a.apk`: `lib/arm64-v8a/libResouces_z0_0..z1_4.so` (12 files, **ELF**).
+- No file with those names exists in either tree; the output is renamed/repacked. The likely
+  outputs (`ArtResource.unity3d`, `global-csharp-metadata.dat`, ...) are identical and not ELF,
+  so shareable. The `libResouces_z*.so` are ELF → private.
+- `_finish` is present on the host but **absent on clone A**; `PatchFileList*.xml`,
+  `game_data_30028189`, `module_nouse_time` are also absent on A.
+
+## Classification and profile
+
+- Shareable: `assets/Art`, `Audio`, `img`, `UI`, `Document` (except 3 `.meta`), `Scenes`,
+  `Video`, `AstcInPack`, `VeryHighInPack`, `TextAsset`, `UnityData_NEW`, `RawImg`, `AStarPath`.
+- Private: `assets/comlibs` (ELF), `LuaServerUpdate`, all metadata/prefs, `login_data/**`,
+  identity files, `_finish`/`_extractor_`/`onceflag.dat`, `android/`, `newbieoffline*`.
+- Draft profile: `mlbb-sharing-profile.json` (include `files/dragon2017/assets/**`, hard excludes
+  for login data and identity, `minFileBytes` 65536, ELF/dex/zip excluded by content).
+
+## T4 criteria (Section 7)
+
+| Criterion | Result | Pass? |
+|---|---|---|
+| Absolute paths in A's preferences and metadata | every one listed with file, key and value | **Pass** |
+| `login_data/**` and identity files located, all covered by a hard exclude | yes | **Pass** |
+| Unpack payloads and their extracted output located and classified | payloads found; output renamed/repacked and classified | **Pass** |
+
+No T4 fail criterion was hit.

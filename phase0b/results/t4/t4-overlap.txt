@@ -1,0 +1,8 @@
+non_img_files=10960
+overlap_files=10954
+sh: <stdin>[24]: join: inaccessible or not found
+identical=0
+different=0
+== different files ==
+== identical sample ==
+== done ==

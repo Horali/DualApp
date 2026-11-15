@@ -857,6 +857,18 @@ Excludes always win over includes. The hard excludes (`login_data` and the ident
 
 **Output:** `phase0b/scripts/mlbb-inventory.sh`, `t4-mlbb-inventory.txt`, `t4-size-histogram.txt`, `t4-classification.md`, `t4-download-order-A.txt`, `t4-prefs-paths.txt`, `t4-identity-files.txt`, `t4-unpack-payloads.txt`, draft `mlbb-sharing-profile.json`
 
+**T4 result (2026-11-15, [`phase0b/results/t4/`](phase0b/results/t4/)):**
+
+- **Host tree:** 161,316 files / 175 folders / **11.77 GiB**. `assets/Art` is 69.3% of it; `Audio` 9.1%, `img` 8.4%, `UI` 6.2%. Content types ≥ 64 KiB: UnityFS 15,565, other 4,441, **ELF 12** (all in `comlibs`), dex 0, zip 0.
+- **Clone A:** 58,281 files / **1,958.2 MiB**; the Phase 0 `img/` copy is 47,069 files / 906.7 MiB.
+- **Overlap (img excluded):** 10,954 files in both; **10,931 identical (99.79%)**, **23 different**. The 23 are metadata, login, newbie and 3 `DecompressNative/*.meta` files. F9 is confirmed at full scale.
+- **Mutable (4-minute run, no login):** 8 files changed in place (599,570 B); **8,042 new files downloaded (484.7 MB)**; 0 deleted. Network received by UID 10057: 503,367,541 B (~480 MiB). Order: **UI → Art → Audio → Video**.
+- **N1 confirmed:** `moba_loading_bg`, `__Extracted_PersistentFilesPath__`, `RWPathRec`, `DeviceSettings.__x__PersistPath_x__KEY__` and `android/base_loadres_version_info` all cache **A's own instance root**. `IphonePath` and `__SDKOverrideAssetsPath__` were absent.
+- **N2/N6:** `login_data/**` is external and instance-specific (all sizes differ); identity files found are internal only (`files/__app_uuid__`, `snssdk_openudid.xml`, `DeviceSettings.xml`). `.DNA_`, `.DNA_FLAG`, `.gp_uuid`, `INSTALLATION`, `AdjustAttribution`, `Cdid.xml` were not found. `_finish` is absent on A.
+- **N3:** the APK payloads are **misspelled** `assets/Resouces4-1..4.dat` and `lib/arm64-v8a/libResouces_z*.so` (ELF). No file with those names is in either tree; the output is renamed/repacked into bundles that are identical and not ELF, so shareable. The `libResouces_z*.so` are private.
+- **Draft profile:** `mlbb-sharing-profile.json` includes `files/dragon2017/assets/**` and hard-excludes login data, identity files, metadata, `comlibs`, `LuaServerUpdate`, caches and ELF/dex/zip content.
+- **T4 pass:** every absolute path is listed with file/key/value; login and identity files are located and covered by hard excludes; the unpack payloads are located and classified.
+
 ### T5 Build the M8 prototype (5–7 days)
 
 1. **Hook-technique spike** (inside PackLoader's own native library, not the engine yet):

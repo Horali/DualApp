@@ -1,0 +1,49 @@
+# T4 unpack payloads (N3)
+
+Date: 2026-11-15. Read-only: `unzip -l` on the installed APK splits, `find` on the trees.
+
+## Payloads inside the APKs
+
+The names are **misspelled in the APK itself** (`Resouces`, `libResouces`), which is why a search for `Resources*.dat` / `libResources0.so` finds nothing.
+
+Base APK (`com.mobile.legends/base.apk`):
+
+| Entry | Size (bytes) |
+|---|---|
+| `assets/Resouces4-1.dat` | 20,522,213 |
+| `assets/Resouces4-2.dat` | 21,017,693 |
+| `assets/Resouces4-3.dat` | 25,913,687 |
+| `assets/Resouces4-4.dat` | 29,187,304 |
+
+`split_config.arm64_v8a.apk`:
+
+| Entry | Size (bytes) |
+|---|---|
+| `lib/arm64-v8a/libResouces_z0_0.so` … `libResouces_z0_7.so` | 2,101,224 each (z0_7 = 1,002,576) |
+| `lib/arm64-v8a/libResouces_z1_0.so` … `libResouces_z1_3.so` | 2,101,224 each |
+| `lib/arm64-v8a/libResouces_z1_4.so` | 1,274,912 |
+
+All 12 `libResouces_z*.so` files are **ELF** (native libraries). The four `Resouces4-*.dat` files are Unity asset payloads.
+
+## Where the extracted output lands
+
+- **No file named `Resouces4-*.dat` or `libResouces_z*.so` exists in the host tree or in clone A's tree.** The game extracts and renames/repacks them.
+- The likely extracted outputs are the large Unity bundles that are byte-identical between the host and clone A:
+  - `assets/Art/android/ArtResource.unity3d` — 29,341,425 bytes (close to `Resouces4-4.dat` 29,187,304)
+  - `assets/UnityData_NEW/Managed/Metadata/global-csharp-metadata.dat` — 20,147,536 bytes (close to `Resouces4-1.dat` 20,522,213)
+  - `assets/Art/android/s/ShaderVariants_add.unity3d` — 28,525,501 bytes
+- These are **not ELF** and are in the 10,931-file identical set, so they are shareable.
+- The `libResouces_z*.so` payloads are **ELF** and are loaded from the APK's native library directory, not from the shared tree. They are private (the `comlibs` rule covers the same class).
+
+## Extraction state in clone A's preferences
+
+| Key | Value |
+|---|---|
+| `__Extracted_Result__` | `0` |
+| `__Extracted_Version__` | `23.01` |
+| `__Extracted_UUID__` | three UUIDs joined by `&` |
+| `__First_Start_After_Extracted__` | three UUIDs joined by `&` |
+| `__SDKOverrideError__` | `errorCode: SDKOverride_AssetsPathEmpty` |
+| `__If_Extracted_Resources__` | empty |
+
+The extraction preferences are set, but the output is not under the payload names. T10 reports "skips unpack" separately from "skips download": a fresh instance may skip the CDN download but still extract these APK payloads, which costs time and disk but no network.

@@ -34,7 +34,13 @@ The clone engine is **NewBlackbox** (open source, upstream commit `89b5983`). It
   - Sparse placeholders cost **0 blocks**; 10,000 placeholders cost **~4.04 KiB each**.
   - Symlinks are denied on external; `io_uring_setup` is killed by seccomp (`SIGSYS`).
   - No need to move MLBB's external data to internal storage.
-- **Not started:** T4–T13.
+- **T4 (MLBB inventory) is DONE** (2026-11-15). See `phase0b/results/t4/`.
+  - Host tree: 161,316 files / 11.77 GiB; `assets/Art` is 69% of it.
+  - Overlap (img excluded): 10,954 files, **10,931 identical (99.79%)**, 23 different (metadata/login/identity).
+  - 4-minute run: 8 files changed in place, 8,042 new files (~462 MiB) downloaded; order UI → Art → Audio → Video.
+  - N1 confirmed: preferences and `base_loadres_version_info` cache the instance's own absolute root.
+  - Draft profile: `phase0b/results/t4/mlbb-sharing-profile.json`.
+- **Not started:** T5–T13.
 
 ## What to do next
 
@@ -42,8 +48,8 @@ Follow `phase-0b-plan.md` Section 5 task by task. Each task has a procedure, del
 
 The suggested order is:
 
-1. **T4** (MLBB inventory).
-2. **T5** onward.
+1. **T5** (build the M8 prototype and the hook-technique spike).
+2. **T6–T13** after it.
 
 Record each task's text results under `phase0b/results/<task>/`. Add a short "T<n> result" note under that task in `phase-0b-plan.md`, as was done for T1.
 

@@ -1,0 +1,55 @@
+# T4 absolute-path scan (clone A)
+
+Date: 2026-11-15. Read via `run-as top.niunaijun.blackbox` and shell. Clone A never logged in.
+Values below are filesystem paths only; no account data is included.
+
+## Preferences (absolute paths found)
+
+| File | Key | Value | Names A's own root? |
+|---|---|---|---|
+| `shared_prefs/__SharedPreference__.xml` | `moba_loading_bg` | `/storage/emulated/0/Android/data/top.niunaijun.blackbox/files/blackbox/storage/emulated/0/Android/data/com.mobile.legends/files/dragon2017/assets/RawImg/android/loadproeff_02_add` | **Yes** |
+| `shared_prefs/__SharedPreference__.xml` | `__Extracted_PersistentFilesPath__` | `/storage/emulated/0/Android/data/top.niunaijun.blackbox/files/blackbox/storage/emulated/0/Android/data/com.mobile.legends/files` | **Yes** |
+| `shared_prefs/com.mobile.legends.v2.playerprefs.xml` | `RWPathRec` | URL-encoded `%2Fstorage%2Femulated%2F0%2FAndroid%2Fdata%2Ftop.niunaijun.blackbox%2Ffiles%2Fblackbox%2Fstorage%2Femulated%2F0%2FAndroid%2Fdata%2Fcom.mobile.legends%2Ffiles` | **Yes** (decodes to A's root) |
+| `shared_prefs/DeviceSettings.xml` | `__x__PersistPath_x__KEY__` | `/storage/emulated/0/Android/data/top.niunaijun.blackbox/files/blackbox/storage/emulated/0/Android/data/com.mobile.legends/files` | **Yes** |
+| `android/base_loadres_version_info` | (line) | `/storage/emulated/0/Android/data/top.niunaijun.blackbox/files/blackbox/storage/emulated/0/Android/data/com.mobile.legends/files/dragon2017/assets/Art/android/s/ShaderVariants_add.unity3d;1235.1` | **Yes** |
+
+Keys from the N1 lead that were **not present** in clone A:
+
+- `__SDKOverrideAssetsPath__` (only `__SDKOverrideError__` = `errorCode: SDKOverride_AssetsPathEmpty`)
+- `IphonePath`
+
+Other `__Extracted_*` keys are IDs, not paths: `__Extracted_UUID__`, `__First_Start_After_Extracted__` (UUID lists), `__Extracted_Version__` = `23.01`, `__Extracted_Result__` = `0`.
+
+## Metadata files (binary-safe grep for `/storage/`, `/sdcard/`, `/data/`)
+
+| File | Host size | Clone A size | Absolute paths |
+|---|---|---|---|
+| `assets/last_download_state` | 272 | 272 | none |
+| `assets/loadres_checking_progress` | 122,337 | 98,565 | none |
+| `assets/loadres_module_info_high` | 85,789 | 3,114 | none |
+| `assets/option_module_info` | 34,480 | 1,898 | none |
+| `assets/PatchFileList.xml` | 21,064 | absent | none |
+| `assets/PatchFileList_SDK.xml` | 10,969 | absent | none |
+| `assets/onceflag.dat` | 1 | 1 | none |
+| `assets/module_nouse_time` | 125 | absent | none |
+| `assets/module_remove_time` | 1,945 | 30 | none |
+| `assets/loadres_skin_version.dat` | 11,836 | 1,012 | none |
+| `assets/game_data_30028189` | 5,210 | absent | none |
+| `assets/last_mode_check_state` | 21 | 21 | none |
+| `assets/_extractor_` | 1 | 1 | none |
+| `assets/_finish` | 0 | **absent** | none |
+| `assets/prefs_int` | 262 | 103 | none |
+| `assets/prefs_string` | 429 | 153 | none |
+| `assets/prefs_long` | 0 | absent | none |
+| `assets/prefs_float` | 0 | absent | none |
+| `assets/mode_versions_build_276` | 38 | 38 | none |
+| `android/UpdateFile_WriteCache_xxh.txt` | 155,645 | 140,085 | none |
+| `android/UpdateFile_xxh.txt` | 4,800,383 | 167,351 | none |
+| `android/base_loadres_version_info` | 143 | 213 | **yes** (A's root, see above) |
+
+## Conclusion
+
+- The N1 lead is **confirmed**: MLBB caches absolute paths in its preferences and in `base_loadres_version_info`, and every one names the instance's own root.
+- Copying any of these files into another instance would plant the wrong root. The Sharing Profile keeps all preferences and metadata private, and T10 must run this scan on B and find none of A's paths.
+- `_finish` (the "download complete" marker) is present on the host but **absent on A**, matching the plan's hypothesis.
+- No path in clone A names the host MLBB root (`/storage/emulated/0/Android/data/com.mobile.legends/...`), so the clone is not writing into the host's tree.

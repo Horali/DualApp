@@ -1,0 +1,42 @@
+# T4 identity and login files (names and sizes only)
+
+Date: 2026-11-15. Clone A never logged in. **No file contents were read.**
+
+## Identity files
+
+| Name | Side | Clone A | Notes |
+|---|---|---|---|
+| `files/__app_uuid__` | internal | **36 bytes** | present |
+| `shared_prefs/snssdk_openudid.xml` | internal | **146 bytes** | present |
+| `shared_prefs/DeviceSettings.xml` | internal | **252 bytes** | present (also caches an absolute path, see `t4-prefs-paths.txt`) |
+| `.DNA_` | — | **not found** | searched internal and external |
+| `.DNA_FLAG` | — | **not found** | searched internal and external |
+| `.gp_uuid` | — | **not found** | searched internal and external |
+| `INSTALLATION` | — | **not found** | searched internal and external |
+| `AdjustAttribution` | — | **not found** | searched internal and external |
+| `Cdid.xml` | — | **not found** | not in `shared_prefs/` |
+| external identity files | external | **none** | no match in the external tree |
+
+The plan's N6 list is a lead; on this clone only three of the named files exist. All three are on the **internal** side, so they are never inside the external `assets/**` share set.
+
+## Login data (`files/dragon2017/login_data/`)
+
+Names and sizes only; contents were not read.
+
+| File | Host | Clone A |
+|---|---|---|
+| `check_upgrade_cache` | 2,182 | 2,379 |
+| `login_auth_cache` | 1,684 | 1,156 |
+| `login_auth_md5` | 1,216 | 718 |
+| `login_bulletin_md5` | 1,411 | 1,411 |
+| `login_upgrade_md5` | 1,674 | 1,535 |
+| `native_login` | 300 | 237 |
+| `prefs/_login_RecordStep_.dat` | 4 | 4 |
+
+All of these are **different** between the host and clone A (except `login_bulletin_md5` and the 4-byte step file), confirming N2: login data is instance-specific and must be hard-excluded. It sits on the **external** side, inside the folder the share set covers, so the hard exclude is mandatory.
+
+## Conclusion
+
+- Identity files are internal and small; the hard excludes in the Sharing Profile cover them.
+- Login data is external and instance-specific; `dualfs-tool` must refuse to pool or copy `login_data/**` even if a profile is wrong.
+- T10 must compare only hashes of B's identity files with A's, never contents.
