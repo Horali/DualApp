@@ -1,9 +1,9 @@
 diff --git a/Bcore/src/main/cpp/dualfs/CopyUp.cpp b/Bcore/src/main/cpp/dualfs/CopyUp.cpp
 new file mode 100644
-index 0000000..a347304
+index 0000000..7565920
 --- /dev/null
 +++ b/Bcore/src/main/cpp/dualfs/CopyUp.cpp
-@@ -0,0 +1,122 @@
+@@ -0,0 +1,124 @@
 +// DualFs: copy-up. Patch 0003 (new files).
 +#include "DualFs.h"
 +#include <fcntl.h>
@@ -33,11 +33,11 @@ index 0000000..a347304
 +    }
 +    if (ok) return true;
 +
-+    // Fallback: 1 MiB read/write.
++    // Fallback: 64 KiB read/write (safe on small thread stacks).
 +    off = 0;
 +    lseek(sfd, 0, SEEK_SET);
 +    lseek(dfd, 0, SEEK_SET);
-+    char buf[1 << 20];
++    char buf[65536];
 +    while (off < size) {
 +        ssize_t n = read(sfd, buf, sizeof(buf));
 +        if (n <= 0) return false;
@@ -72,8 +72,10 @@ index 0000000..a347304
 +        return false;
 +    }
 +
++    const char *tmpDir = (g_cfg.tmp_int[0] && strncmp(path, "/data/", 6) == 0)
++                         ? g_cfg.tmp_int : g_cfg.tmp;
 +    char tmp[PATH_MAX];
-+    snprintf(tmp, sizeof(tmp), "%s/cu-%lu-%d-%ld", g_cfg.tmp,
++    snprintf(tmp, sizeof(tmp), "%s/cu-%lu-%d-%ld", tmpDir,
 +             (unsigned long) st.st_ino, (int) getpid(), (long) time(nullptr));
 +    int sfd = realOpen(blob, O_RDONLY | O_CLOEXEC, 0);
 +    int dfd = realOpen(tmp, O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC, st.st_mode & 07777);
@@ -128,10 +130,10 @@ index 0000000..a347304
 +}  // namespace dualfs
 diff --git a/Bcore/src/main/cpp/dualfs/DualFs.cpp b/Bcore/src/main/cpp/dualfs/DualFs.cpp
 new file mode 100644
-index 0000000..41fb378
+index 0000000..5d786f8
 --- /dev/null
 +++ b/Bcore/src/main/cpp/dualfs/DualFs.cpp
-@@ -0,0 +1,82 @@
+@@ -0,0 +1,95 @@
 +// DualFs: config, counters and start-up. Patch 0003 (new files).
 +#include "DualFs.h"
 +#include <android/log.h>
@@ -169,29 +171,41 @@ index 0000000..41fb378
 +        char *k = trim(line);
 +        char *v = trim(eq + 1);
 +        if (!strcmp(k, "pool")) snprintf(g_cfg.pool, sizeof(g_cfg.pool), "%s", v);
-+        else if (!strcmp(k, "root")) snprintf(g_cfg.root, sizeof(g_cfg.root), "%s", v);
++        else if (!strcmp(k, "root")) {
++            if (!g_cfg.root[0]) snprintf(g_cfg.root, sizeof(g_cfg.root), "%s", v);
++            if (g_cfg.nroots < 4 && v[0]) {
++                snprintf(g_cfg.roots[g_cfg.nroots++], sizeof(g_cfg.roots[0]), "%s", v);
++            }
++        }
 +        else if (!strcmp(k, "tmp")) snprintf(g_cfg.tmp, sizeof(g_cfg.tmp), "%s", v);
++        else if (!strcmp(k, "tmp_int")) snprintf(g_cfg.tmp_int, sizeof(g_cfg.tmp_int), "%s", v);
 +        else if (!strcmp(k, "locks")) snprintf(g_cfg.locks, sizeof(g_cfg.locks), "%s", v);
 +        else if (!strcmp(k, "pkg")) snprintf(g_cfg.pkg, sizeof(g_cfg.pkg), "%s", v);
 +        else if (!strcmp(k, "user")) g_cfg.userId = atoi(v);
 +    }
 +    fclose(f);
-+    return g_cfg.pool[0] && g_cfg.root[0] && g_cfg.tmp[0] && g_cfg.locks[0];
++    return g_cfg.pool[0] && g_cfg.nroots > 0 && g_cfg.tmp[0] && g_cfg.locks[0];
 +}
 +
-+static void cleanTmp() {
-+    DIR *d = opendir(g_cfg.tmp);
++static void cleanDir(const char *dirPath, const char *label) {
++    if (!dirPath || !dirPath[0]) return;
++    DIR *d = opendir(dirPath);
 +    if (!d) return;
 +    struct dirent *e;
 +    int n = 0;
 +    while ((e = readdir(d)) != nullptr) {
 +        if (!strcmp(e->d_name, ".") || !strcmp(e->d_name, "..")) continue;
 +        char p[1024];
-+        snprintf(p, sizeof(p), "%s/%s", g_cfg.tmp, e->d_name);
++        snprintf(p, sizeof(p), "%s/%s", dirPath, e->d_name);
 +        if (unlink(p) == 0) n++;
 +    }
 +    closedir(d);
-+    if (n) LOGI("cleaned %d orphan(s) from tmp", n);
++    if (n) LOGI("cleaned %d orphan(s) from %s", n, label);
++}
++
++static void cleanTmp() {
++    cleanDir(g_cfg.tmp, "tmp");
++    cleanDir(g_cfg.tmp_int, "tmp_int");
 +}
 +
 +bool enable(const char *configPath) {
@@ -203,7 +217,8 @@ index 0000000..41fb378
 +    cleanTmp();
 +    installHooks();
 +    g_cfg.loaded = true;
-+    LOGI("enabled: pkg=%s user=%d pool=%s root=%s", g_cfg.pkg, g_cfg.userId, g_cfg.pool, g_cfg.root);
++    LOGI("enabled: pkg=%s user=%d pool=%s roots=%d root0=%s",
++         g_cfg.pkg, g_cfg.userId, g_cfg.pool, g_cfg.nroots, g_cfg.root);
 +    return true;
 +}
 +
@@ -216,10 +231,10 @@ index 0000000..41fb378
 +}  // namespace dualfs
 diff --git a/Bcore/src/main/cpp/dualfs/DualFs.h b/Bcore/src/main/cpp/dualfs/DualFs.h
 new file mode 100644
-index 0000000..7399d6c
+index 0000000..df8c347
 --- /dev/null
 +++ b/Bcore/src/main/cpp/dualfs/DualFs.h
-@@ -0,0 +1,39 @@
+@@ -0,0 +1,45 @@
 +#ifndef DUALFS_H
 +#define DUALFS_H
 +
@@ -233,7 +248,10 @@ index 0000000..7399d6c
 +struct Config {
 +    char pool[512];
 +    char root[512];
++    char roots[4][512];
++    int nroots;
 +    char tmp[512];
++    char tmp_int[512];
 +    char locks[512];
 +    char pkg[256];
 +    int userId;
@@ -249,10 +267,13 @@ index 0000000..7399d6c
 +extern std::atomic<long> g_errors;
 +
 +bool enable(const char *configPath);
-+bool isPlaceholder(const char *path, char *blobPath, size_t blobPathSize, off_t *size);
++bool isPlaceholder(const char *path, char *blobPath, size_t blobPathSize, off_t *size,
++                   bool followSymlinks = false, char *resolvedPath = nullptr, size_t resolvedSize = 0);
 +bool copyUp(const char *path);
 +bool removeTag(const char *path);
 +int realOpen(const char *path, int flags, mode_t mode);
++int realRemovexattr(const char *path, const char *name);
++ssize_t realReadlinkAt(int dirfd, const char *path, char *buf, size_t bufsiz);
 +void installHooks();
 +void logStats();
 +
@@ -261,10 +282,10 @@ index 0000000..7399d6c
 +#endif
 diff --git a/Bcore/src/main/cpp/dualfs/HookBackend.cpp b/Bcore/src/main/cpp/dualfs/HookBackend.cpp
 new file mode 100644
-index 0000000..e5ceb40
+index 0000000..22d096b
 --- /dev/null
 +++ b/Bcore/src/main/cpp/dualfs/HookBackend.cpp
-@@ -0,0 +1,236 @@
+@@ -0,0 +1,639 @@
 +// DualFs: libc hooks. Patch 0003 (new files).
 +#include "DualFs.h"
 +#include <android/log.h>
@@ -273,6 +294,7 @@ index 0000000..e5ceb40
 +#include <dlfcn.h>
 +#include <stdarg.h>
 +#include <stdio.h>
++#include <stdlib.h>
 +#include <string.h>
 +#include <errno.h>
 +#include <limits.h>
@@ -292,17 +314,33 @@ index 0000000..e5ceb40
 +static int (*orig_openat)(int, const char *, int, ...) = nullptr;
 +static int (*orig___openat)(int, const char *, int, int) = nullptr;
 +static int (*orig_fchmod)(int, mode_t) = nullptr;
-+static int (*orig_truncate)(const char *, off_t) = nullptr;
 +static int (*orig_chmod)(const char *, mode_t) = nullptr;
++static int (*orig_fchmodat)(int, const char *, mode_t, int) = nullptr;
++static int (*orig_truncate)(const char *, off_t) = nullptr;
++static int (*orig_utimensat)(int, const char *, const struct timespec[2], int) = nullptr;
++static int (*orig_setxattr)(const char *, const char *, const void *, size_t, int) = nullptr;
++static int (*orig_lsetxattr)(const char *, const char *, const void *, size_t, int) = nullptr;
++static int (*orig_fsetxattr)(int, const char *, const void *, size_t, int) = nullptr;
++static int (*orig_removexattr)(const char *, const char *) = nullptr;
++static int (*orig_lremovexattr)(const char *, const char *) = nullptr;
++static int (*orig_fremovexattr)(int, const char *) = nullptr;
++static ssize_t (*orig_readlinkat)(int, const char *, char *, size_t) = nullptr;
++
++static thread_local bool g_inHook = false;
++
++struct HookGuard {
++    bool prev;
++    HookGuard() : prev(g_inHook) { g_inHook = true; }
++    ~HookGuard() { g_inHook = prev; }
++};
 +
 +int realOpen(const char *path, int flags, mode_t mode) {
-+    if (orig_open) return orig_open(path, flags, mode);
++    if (orig___openat) return orig___openat(AT_FDCWD, path, flags, (int) mode);
 +    return (int) syscall(SYS_openat, AT_FDCWD, path, flags, (int) mode);
 +}
 +
 +static int realOpenAt(int dirfd, const char *path, int flags, mode_t mode) {
 +    if (orig___openat) return orig___openat(dirfd, path, flags, (int) mode);
-+    if (orig_openat) return orig_openat(dirfd, path, flags, mode);
 +    return (int) syscall(SYS_openat, dirfd, path, flags, (int) mode);
 +}
 +
@@ -311,48 +349,108 @@ index 0000000..e5ceb40
 +    return (int) syscall(SYS_fchmod, fd, mode);
 +}
 +
++static int realChmod(const char *path, mode_t mode) {
++    return (int) syscall(SYS_fchmodat, AT_FDCWD, path, mode, 0);
++}
++
++static int realFchmodat(int dirfd, const char *path, mode_t mode, int flags) {
++    if (orig_fchmodat) return orig_fchmodat(dirfd, path, mode, flags);
++    return (int) syscall(SYS_fchmodat, dirfd, path, mode, flags);
++}
++
 +static int realTruncate(const char *path, off_t len) {
 +    if (orig_truncate) return orig_truncate(path, len);
 +    return (int) syscall(SYS_truncate, path, len);
 +}
 +
-+static int realChmod(const char *path, mode_t mode) {
-+    if (orig_chmod) return orig_chmod(path, mode);
-+    return (int) syscall(SYS_fchmodat, AT_FDCWD, path, mode, 0);
++static int realUtimensat(int dirfd, const char *path, const struct timespec times[2], int flags) {
++    if (orig_utimensat) return orig_utimensat(dirfd, path, times, flags);
++    return (int) syscall(SYS_utimensat, dirfd, path, times, flags);
++}
++
++static int realSetxattr(const char *path, const char *name, const void *value, size_t size, int flags) {
++    if (orig_setxattr) return orig_setxattr(path, name, value, size, flags);
++    return (int) syscall(SYS_setxattr, path, name, value, size, flags);
++}
++
++static int realLsetxattr(const char *path, const char *name, const void *value, size_t size, int flags) {
++    if (orig_lsetxattr) return orig_lsetxattr(path, name, value, size, flags);
++    return (int) syscall(SYS_lsetxattr, path, name, value, size, flags);
++}
++
++static int realFsetxattr(int fd, const char *name, const void *value, size_t size, int flags) {
++    if (orig_fsetxattr) return orig_fsetxattr(fd, name, value, size, flags);
++    return (int) syscall(SYS_fsetxattr, fd, name, value, size, flags);
++}
++
++int realRemovexattr(const char *path, const char *name) {
++    if (orig_removexattr) return orig_removexattr(path, name);
++    return (int) syscall(SYS_removexattr, path, name);
++}
++
++static int realLremovexattr(const char *path, const char *name) {
++    if (orig_lremovexattr) return orig_lremovexattr(path, name);
++    return (int) syscall(SYS_lremovexattr, path, name);
++}
++
++static int realFremovexattr(int fd, const char *name) {
++    if (orig_fremovexattr) return orig_fremovexattr(fd, name);
++    return (int) syscall(SYS_fremovexattr, fd, name);
++}
++
++ssize_t realReadlinkAt(int dirfd, const char *path, char *buf, size_t bufsiz) {
++    if (orig_readlinkat) return orig_readlinkat(dirfd, path, buf, bufsiz);
++    return (ssize_t) syscall(SYS_readlinkat, dirfd, path, buf, bufsiz);
 +}
 +
 +struct BlobEntry {
 +    int fd;
-+    char path[PATH_MAX];
++    char blob[PATH_MAX];
++    char ph[PATH_MAX];
 +};
 +
-+static BlobEntry g_blobs[256];
++static constexpr int kMaxBlobs = 1024;
++static BlobEntry g_blobs[kMaxBlobs];
 +static pthread_mutex_t g_blobLock = PTHREAD_MUTEX_INITIALIZER;
 +
-+static void recordBlob(int fd, const char *path) {
++static void recordBlob(int fd, const char *blob, const char *ph) {
 +    pthread_mutex_lock(&g_blobLock);
-+    for (auto &e : g_blobs) {
-+        if (e.fd == 0) {
-+            e.fd = fd;
-+            snprintf(e.path, sizeof(e.path), "%s", path);
++    int freeIdx = -1;
++    int matchIdx = -1;
++    for (int i = 0; i < kMaxBlobs; i++) {
++        if (g_blobs[i].fd == fd) {
++            matchIdx = i;
 +            break;
 +        }
++        if (freeIdx < 0 && g_blobs[i].fd == 0) {
++            freeIdx = i;
++        }
 +    }
++    int idx = (matchIdx >= 0) ? matchIdx : (freeIdx >= 0 ? freeIdx : ((unsigned) fd % kMaxBlobs));
++    g_blobs[idx].fd = fd;
++    snprintf(g_blobs[idx].blob, sizeof(g_blobs[idx].blob), "%s", blob);
++    snprintf(g_blobs[idx].ph, sizeof(g_blobs[idx].ph), "%s", ph);
 +    pthread_mutex_unlock(&g_blobLock);
 +}
 +
-+static bool lookupBlob(int fd, char *out, size_t n) {
++static bool readFdTarget(int fd, char *target, size_t n) {
++    if (fd < 0) return false;
 +    char proc[64];
 +    snprintf(proc, sizeof(proc), "/proc/self/fd/%d", fd);
-+    char target[PATH_MAX];
-+    ssize_t len = readlink(proc, target, sizeof(target) - 1);
++    ssize_t len = realReadlinkAt(AT_FDCWD, proc, target, n - 1);
 +    if (len <= 0) return false;
 +    target[len] = 0;
++    return true;
++}
++
++static bool lookupBlob(int fd, char *phOut, size_t n) {
++    char target[PATH_MAX];
++    if (!readFdTarget(fd, target, sizeof(target))) return false;
 +    bool found = false;
 +    pthread_mutex_lock(&g_blobLock);
-+    for (auto &e : g_blobs) {
-+        if (e.fd == fd && !strcmp(e.path, target)) {
-+            snprintf(out, n, "%s", e.path);
++    for (int i = 0; i < kMaxBlobs; i++) {
++        if (g_blobs[i].fd == fd && !strcmp(g_blobs[i].blob, target)) {
++            snprintf(phOut, n, "%s", g_blobs[i].ph);
 +            found = true;
 +            break;
 +        }
@@ -361,36 +459,131 @@ index 0000000..e5ceb40
 +    return found;
 +}
 +
++static bool isPoolFd(int fd) {
++    char target[PATH_MAX];
++    if (!readFdTarget(fd, target, sizeof(target))) return false;
++    size_t plen = strlen(g_cfg.pool);
++    return plen > 0 && strncmp(target, g_cfg.pool, plen) == 0 && target[plen] == '/';
++}
++
++static bool parseProcFd(const char *path, int *fdOut) {
++    if (!path) return false;
++    const char *p = nullptr;
++    if (strncmp(path, "/proc/self/fd/", 14) == 0) {
++        p = path + 14;
++    } else if (strncmp(path, "/proc/", 6) == 0) {
++        char prefix[64];
++        int plen = snprintf(prefix, sizeof(prefix), "/proc/%d/fd/", (int) getpid());
++        if (plen > 0 && strncmp(path, prefix, (size_t) plen) == 0) {
++            p = path + plen;
++        }
++    }
++    if (!p || *p < '0' || *p > '9') return false;
++    char *end = nullptr;
++    long val = strtol(p, &end, 10);
++    if (!end || *end != '\0' || val < 0 || val > 1048576) return false;
++    *fdOut = (int) val;
++    return true;
++}
++
++static bool resolveAt(int dirfd, const char *path, char *out, size_t outSize) {
++    if (!path || !path[0]) return false;
++    if (path[0] == '/') {
++        snprintf(out, outSize, "%s", path);
++        return true;
++    }
++    char dir[PATH_MAX];
++    if (dirfd == AT_FDCWD) {
++        if (!getcwd(dir, sizeof(dir))) return false;
++    } else {
++        if (!readFdTarget(dirfd, dir, sizeof(dir))) return false;
++    }
++    const char *rel = (path[0] == '.' && path[1] == '/') ? (path + 2) : path;
++    if (!rel[0] || !strcmp(rel, ".")) {
++        snprintf(out, outSize, "%s", dir);
++    } else {
++        snprintf(out, outSize, "%s/%s", dir, rel);
++    }
++    return true;
++}
++
++static bool isProtectedXattr(const char *name) {
++    return name && strncmp(name, "user.dualapp.", 13) == 0;
++}
++
 +static int do_open(const char *path, int flags, mode_t mode, int dirfd, bool is_at) {
++    if (!path || g_inHook || !g_cfg.loaded) {
++        return is_at ? realOpenAt(dirfd, path, flags, mode)
++                     : realOpen(path, flags, mode);
++    }
++    HookGuard guard;
++    int saved_errno = errno;
++    char absBuf[PATH_MAX];
++    const char *targetPath = path;
++    if (resolveAt(dirfd, path, absBuf, sizeof(absBuf))) {
++        targetPath = absBuf;
++    }
++
++    int pfd = -1;
++    char phBuf[PATH_MAX];
++    if (parseProcFd(targetPath, &pfd)) {
++        if (lookupBlob(pfd, phBuf, sizeof(phBuf))) {
++            targetPath = phBuf;
++            dirfd = AT_FDCWD;
++            is_at = false;
++        } else if (isPoolFd(pfd)) {
++            int acc = flags & O_ACCMODE;
++            bool write = (acc == O_WRONLY || acc == O_RDWR) || (flags & (O_APPEND | O_TRUNC));
++            if (write) {
++                g_guards++;
++                errno = EACCES;
++                return -1;
++            }
++        }
++    }
++
 +    char blob[PATH_MAX];
++    char resolved[PATH_MAX];
 +    off_t size;
-+    if (isPlaceholder(path, blob, sizeof(blob), &size)) {
++    bool follow = !(flags & O_NOFOLLOW);
++    if (isPlaceholder(targetPath, blob, sizeof(blob), &size, follow, resolved, sizeof(resolved))) {
 +        g_opens++;
++        if ((flags & (O_CREAT | O_EXCL)) == (O_CREAT | O_EXCL)) {
++            errno = saved_errno;
++            return is_at ? realOpenAt(dirfd, targetPath, flags, mode)
++                         : realOpen(targetPath, flags, mode);
++        }
 +        int acc = flags & O_ACCMODE;
 +        bool write = (acc == O_WRONLY || acc == O_RDWR) || (flags & O_APPEND);
 +        if (flags & O_TRUNC) {
-+            int fd = is_at ? realOpenAt(dirfd, path, flags, mode)
-+                           : realOpen(path, flags, mode);
-+            if (fd >= 0) removeTag(path);
++            if (access(resolved, W_OK) == 0) {
++                removeTag(resolved);
++            }
++            errno = saved_errno;
++            int fd = realOpen(resolved, flags, mode);
++            if (fd >= 0) removeTag(resolved);
 +            g_truncs++;
 +            return fd;
 +        }
 +        if (!write) {
++            errno = saved_errno;
 +            int fd = realOpen(blob, O_RDONLY | (flags & O_CLOEXEC), 0);
 +            if (fd >= 0) {
-+                recordBlob(fd, blob);
++                recordBlob(fd, blob, resolved);
 +                g_redirects++;
 +            }
 +            return fd;
 +        }
-+        if (!copyUp(path)) {
++        if (!copyUp(resolved)) {
 +            errno = EIO;
 +            g_errors++;
 +            return -1;
 +        }
-+        return is_at ? realOpenAt(dirfd, path, flags, mode)
-+                     : realOpen(path, flags, mode);
++        errno = saved_errno;
++        return realOpen(resolved, flags, mode);
 +    }
++
++    errno = saved_errno;
 +    return is_at ? realOpenAt(dirfd, path, flags, mode)
 +                 : realOpen(path, flags, mode);
 +}
@@ -422,48 +615,260 @@ index 0000000..e5ceb40
 +}
 +
 +static int h_fchmod(int fd, mode_t mode) {
-+    char ph[PATH_MAX];
-+    if (lookupBlob(fd, ph, sizeof(ph))) {
-+        int pfd = realOpen(ph, O_RDONLY | O_CLOEXEC, 0);
-+        if (pfd >= 0) {
-+            int r = realFchmod(pfd, mode);
-+            close(pfd);
++    if (!g_inHook && g_cfg.loaded) {
++        HookGuard guard;
++        int saved_errno = errno;
++        char ph[PATH_MAX];
++        if (lookupBlob(fd, ph, sizeof(ph))) {
 +            g_guards++;
-+            return r;
++            errno = saved_errno;
++            return realChmod(ph, mode);
 +        }
++        errno = saved_errno;
 +    }
 +    return realFchmod(fd, mode);
 +}
 +
++static int h_chmod(const char *path, mode_t mode) {
++    if (!g_inHook && g_cfg.loaded && path) {
++        HookGuard guard;
++        int saved_errno = errno;
++        int fd = -1;
++        char ph[PATH_MAX];
++        if (parseProcFd(path, &fd) && lookupBlob(fd, ph, sizeof(ph))) {
++            g_guards++;
++            errno = saved_errno;
++            return realChmod(ph, mode);
++        }
++        errno = saved_errno;
++    }
++    return realChmod(path, mode);
++}
++
++static int h_fchmodat(int dirfd, const char *path, mode_t mode, int flags) {
++    if (!g_inHook && g_cfg.loaded && path) {
++        HookGuard guard;
++        int saved_errno = errno;
++        char abs[PATH_MAX];
++        int fd = -1;
++        char ph[PATH_MAX];
++        if (resolveAt(dirfd, path, abs, sizeof(abs)) &&
++            parseProcFd(abs, &fd) && lookupBlob(fd, ph, sizeof(ph))) {
++            g_guards++;
++            errno = saved_errno;
++            return realChmod(ph, mode);
++        }
++        errno = saved_errno;
++    }
++    return realFchmodat(dirfd, path, mode, flags);
++}
++
 +static int h_truncate(const char *path, off_t len) {
-+    char blob[PATH_MAX];
-+    off_t size;
-+    if (isPlaceholder(path, blob, sizeof(blob), &size)) {
-+        if (len == 0) {
-+            int r = realTruncate(path, 0);
-+            if (r == 0) removeTag(path);
-+            g_truncs++;
-+            return r;
++    if (!g_inHook && g_cfg.loaded && path) {
++        HookGuard guard;
++        int saved_errno = errno;
++        const char *targetPath = path;
++        char ph[PATH_MAX];
++        int pfd = -1;
++        if (parseProcFd(path, &pfd) && lookupBlob(pfd, ph, sizeof(ph))) {
++            targetPath = ph;
 +        }
-+        if (!copyUp(path)) {
-+            errno = EIO;
-+            g_errors++;
-+            return -1;
++        char blob[PATH_MAX];
++        char resolved[PATH_MAX];
++        off_t size;
++        if (isPlaceholder(targetPath, blob, sizeof(blob), &size, true, resolved, sizeof(resolved))) {
++            if (len == 0) {
++                if (access(resolved, W_OK) == 0) {
++                    removeTag(resolved);
++                }
++                errno = saved_errno;
++                int r = realTruncate(resolved, 0);
++                if (r == 0) removeTag(resolved);
++                g_truncs++;
++                return r;
++            }
++            if (!copyUp(resolved)) {
++                errno = EIO;
++                g_errors++;
++                return -1;
++            }
++            errno = saved_errno;
++            return realTruncate(resolved, len);
 +        }
++        errno = saved_errno;
 +    }
 +    return realTruncate(path, len);
 +}
 +
-+static int h_chmod(const char *path, mode_t mode) {
-+    int fd;
-+    if (sscanf(path, "/proc/self/fd/%d", &fd) == 1) {
++static int h_utimensat(int dirfd, const char *path, const struct timespec times[2], int flags) {
++    if (!g_inHook && g_cfg.loaded) {
++        HookGuard guard;
++        int saved_errno = errno;
++        char ph[PATH_MAX];
++        if (!path) {
++            if (lookupBlob(dirfd, ph, sizeof(ph))) {
++                g_guards++;
++                errno = saved_errno;
++                return realUtimensat(AT_FDCWD, ph, times, 0);
++            }
++        } else {
++            char abs[PATH_MAX];
++            int fd = -1;
++            if (resolveAt(dirfd, path, abs, sizeof(abs)) &&
++                parseProcFd(abs, &fd) && lookupBlob(fd, ph, sizeof(ph))) {
++                g_guards++;
++                errno = saved_errno;
++                return realUtimensat(AT_FDCWD, ph, times, 0);
++            }
++        }
++        errno = saved_errno;
++    }
++    return realUtimensat(dirfd, path, times, flags);
++}
++
++static int h_setxattr(const char *path, const char *name, const void *value, size_t size, int flags) {
++    if (!g_inHook && g_cfg.loaded) {
++        HookGuard guard;
++        if (isProtectedXattr(name)) {
++            g_guards++;
++            errno = ENOTSUP;
++            return -1;
++        }
++        int saved_errno = errno;
++        int fd = -1;
++        char ph[PATH_MAX];
++        if (parseProcFd(path, &fd) && lookupBlob(fd, ph, sizeof(ph))) {
++            g_guards++;
++            errno = saved_errno;
++            return realSetxattr(ph, name, value, size, flags);
++        }
++        errno = saved_errno;
++    }
++    return realSetxattr(path, name, value, size, flags);
++}
++
++static int h_lsetxattr(const char *path, const char *name, const void *value, size_t size, int flags) {
++    if (!g_inHook && g_cfg.loaded) {
++        HookGuard guard;
++        if (isProtectedXattr(name)) {
++            g_guards++;
++            errno = ENOTSUP;
++            return -1;
++        }
++        int saved_errno = errno;
++        int fd = -1;
++        char ph[PATH_MAX];
++        if (parseProcFd(path, &fd) && lookupBlob(fd, ph, sizeof(ph))) {
++            g_guards++;
++            errno = saved_errno;
++            return realSetxattr(ph, name, value, size, flags);
++        }
++        errno = saved_errno;
++    }
++    return realLsetxattr(path, name, value, size, flags);
++}
++
++static int h_fsetxattr(int fd, const char *name, const void *value, size_t size, int flags) {
++    if (!g_inHook && g_cfg.loaded) {
++        HookGuard guard;
++        if (isProtectedXattr(name)) {
++            g_guards++;
++            errno = ENOTSUP;
++            return -1;
++        }
++        int saved_errno = errno;
 +        char ph[PATH_MAX];
 +        if (lookupBlob(fd, ph, sizeof(ph))) {
 +            g_guards++;
-+            return realChmod(ph, mode);
++            errno = saved_errno;
++            return realSetxattr(ph, name, value, size, flags);
 +        }
++        errno = saved_errno;
 +    }
-+    return realChmod(path, mode);
++    return realFsetxattr(fd, name, value, size, flags);
++}
++
++static int h_removexattr(const char *path, const char *name) {
++    if (!g_inHook && g_cfg.loaded) {
++        HookGuard guard;
++        if (isProtectedXattr(name)) {
++            g_guards++;
++            errno = ENOTSUP;
++            return -1;
++        }
++        int saved_errno = errno;
++        int fd = -1;
++        char ph[PATH_MAX];
++        if (parseProcFd(path, &fd) && lookupBlob(fd, ph, sizeof(ph))) {
++            g_guards++;
++            errno = saved_errno;
++            return realRemovexattr(ph, name);
++        }
++        errno = saved_errno;
++    }
++    return realRemovexattr(path, name);
++}
++
++static int h_lremovexattr(const char *path, const char *name) {
++    if (!g_inHook && g_cfg.loaded) {
++        HookGuard guard;
++        if (isProtectedXattr(name)) {
++            g_guards++;
++            errno = ENOTSUP;
++            return -1;
++        }
++        int saved_errno = errno;
++        int fd = -1;
++        char ph[PATH_MAX];
++        if (parseProcFd(path, &fd) && lookupBlob(fd, ph, sizeof(ph))) {
++            g_guards++;
++            errno = saved_errno;
++            return realRemovexattr(ph, name);
++        }
++        errno = saved_errno;
++    }
++    return realLremovexattr(path, name);
++}
++
++static int h_fremovexattr(int fd, const char *name) {
++    if (!g_inHook && g_cfg.loaded) {
++        HookGuard guard;
++        if (isProtectedXattr(name)) {
++            g_guards++;
++            errno = ENOTSUP;
++            return -1;
++        }
++        int saved_errno = errno;
++        char ph[PATH_MAX];
++        if (lookupBlob(fd, ph, sizeof(ph))) {
++            g_guards++;
++            errno = saved_errno;
++            return realRemovexattr(ph, name);
++        }
++        errno = saved_errno;
++    }
++    return realFremovexattr(fd, name);
++}
++
++static ssize_t h_readlinkat(int dirfd, const char *path, char *buf, size_t bufsiz) {
++    if (!g_inHook && g_cfg.loaded && path) {
++        HookGuard guard;
++        int saved_errno = errno;
++        char abs[PATH_MAX];
++        int fd = -1;
++        char ph[PATH_MAX];
++        if (resolveAt(dirfd, path, abs, sizeof(abs)) &&
++            parseProcFd(abs, &fd) && lookupBlob(fd, ph, sizeof(ph))) {
++            size_t len = strlen(ph);
++            size_t cp = len < bufsiz ? len : bufsiz;
++            if (cp > 0 && buf) memcpy(buf, ph, cp);
++            g_guards++;
++            errno = saved_errno;
++            return (ssize_t) cp;
++        }
++        errno = saved_errno;
++    }
++    return realReadlinkAt(dirfd, path, buf, bufsiz);
 +}
 +
 +static void hook(const char *name, void *target, void *repl, void **orig) {
@@ -487,8 +892,18 @@ index 0000000..e5ceb40
 +    orig_open = (int (*)(const char *, int, ...)) dlsym(h, "open");
 +    orig_openat = (int (*)(int, const char *, int, ...)) dlsym(h, "openat");
 +    orig_fchmod = (int (*)(int, mode_t)) dlsym(h, "fchmod");
-+    orig_truncate = (int (*)(const char *, off_t)) dlsym(h, "truncate");
 +    orig_chmod = (int (*)(const char *, mode_t)) dlsym(h, "chmod");
++    orig_fchmodat = (int (*)(int, const char *, mode_t, int)) dlsym(h, "fchmodat");
++    orig_truncate = (int (*)(const char *, off_t)) dlsym(h, "truncate");
++    orig_utimensat = (int (*)(int, const char *, const struct timespec[2], int)) dlsym(h, "utimensat");
++    orig_setxattr = (int (*)(const char *, const char *, const void *, size_t, int)) dlsym(h, "setxattr");
++    orig_lsetxattr = (int (*)(const char *, const char *, const void *, size_t, int)) dlsym(h, "lsetxattr");
++    orig_fsetxattr = (int (*)(int, const char *, const void *, size_t, int)) dlsym(h, "fsetxattr");
++    orig_removexattr = (int (*)(const char *, const char *)) dlsym(h, "removexattr");
++    orig_lremovexattr = (int (*)(const char *, const char *)) dlsym(h, "lremovexattr");
++    orig_fremovexattr = (int (*)(int, const char *)) dlsym(h, "fremovexattr");
++    orig_readlinkat = (ssize_t (*)(int, const char *, char *, size_t)) dlsym(h, "readlinkat");
++
 +    void *xh = xdl_open("libc.so", XDL_DEFAULT);
 +    void *sym = xh ? xdl_dsym(xh, "__openat", nullptr) : nullptr;
 +
@@ -496,17 +911,26 @@ index 0000000..e5ceb40
 +    hook("openat", (void *) orig_openat, (void *) h_openat, (void **) &orig_openat);
 +    hook("__openat", sym, (void *) h___openat, (void **) &orig___openat);
 +    hook("fchmod", (void *) orig_fchmod, (void *) h_fchmod, (void **) &orig_fchmod);
-+    hook("truncate", (void *) orig_truncate, (void *) h_truncate, (void **) &orig_truncate);
 +    hook("chmod", (void *) orig_chmod, (void *) h_chmod, (void **) &orig_chmod);
++    hook("fchmodat", (void *) orig_fchmodat, (void *) h_fchmodat, (void **) &orig_fchmodat);
++    hook("truncate", (void *) orig_truncate, (void *) h_truncate, (void **) &orig_truncate);
++    hook("utimensat", (void *) orig_utimensat, (void *) h_utimensat, (void **) &orig_utimensat);
++    hook("setxattr", (void *) orig_setxattr, (void *) h_setxattr, (void **) &orig_setxattr);
++    hook("lsetxattr", (void *) orig_lsetxattr, (void *) h_lsetxattr, (void **) &orig_lsetxattr);
++    hook("fsetxattr", (void *) orig_fsetxattr, (void *) h_fsetxattr, (void **) &orig_fsetxattr);
++    hook("removexattr", (void *) orig_removexattr, (void *) h_removexattr, (void **) &orig_removexattr);
++    hook("lremovexattr", (void *) orig_lremovexattr, (void *) h_lremovexattr, (void **) &orig_lremovexattr);
++    hook("fremovexattr", (void *) orig_fremovexattr, (void *) h_fremovexattr, (void **) &orig_fremovexattr);
++    hook("readlinkat", (void *) orig_readlinkat, (void *) h_readlinkat, (void **) &orig_readlinkat);
 +}
 +
 +}  // namespace dualfs
 diff --git a/Bcore/src/main/cpp/dualfs/Placeholder.cpp b/Bcore/src/main/cpp/dualfs/Placeholder.cpp
 new file mode 100644
-index 0000000..8cc221b
+index 0000000..8cc95a7
 --- /dev/null
 +++ b/Bcore/src/main/cpp/dualfs/Placeholder.cpp
-@@ -0,0 +1,53 @@
+@@ -0,0 +1,70 @@
 +// DualFs: placeholder tag and test. Patch 0003 (new files).
 +#include "DualFs.h"
 +#include <sys/xattr.h>
@@ -522,8 +946,14 @@ index 0000000..8cc221b
 +static const char *kTag = "user.dualapp.blob";
 +
 +static bool underRoot(const char *path) {
-+    size_t n = strlen(g_cfg.root);
-+    return n > 0 && strncmp(path, g_cfg.root, n) == 0;
++    for (int i = 0; i < g_cfg.nroots; i++) {
++        size_t n = strlen(g_cfg.roots[i]);
++        if (n > 0 && strncmp(path, g_cfg.roots[i], n) == 0 &&
++            (path[n] == '/' || path[n] == '\0')) {
++            return true;
++        }
++    }
++    return false;
 +}
 +
 +static bool readTag(const char *path, char *sha, size_t shaSize, off_t *size) {
@@ -539,24 +969,35 @@ index 0000000..8cc221b
 +    return *size >= 0;
 +}
 +
-+bool isPlaceholder(const char *path, char *blobPath, size_t blobPathSize, off_t *size) {
-+    if (!g_cfg.loaded || !path || !underRoot(path)) return false;
++bool isPlaceholder(const char *path, char *blobPath, size_t blobPathSize, off_t *size,
++                   bool followSymlinks, char *resolvedPath, size_t resolvedSize) {
++    if (!g_cfg.loaded || !path) return false;
 +    struct stat st;
 +    if (lstat(path, &st) != 0) return false;
++    const char *usePath = path;
++    char linkBuf[PATH_MAX];
++    if (S_ISLNK(st.st_mode)) {
++        if (!followSymlinks) return false;
++        if (!realpath(path, linkBuf)) return false;
++        usePath = linkBuf;
++        if (lstat(usePath, &st) != 0) return false;
++    }
++    if (!underRoot(usePath)) return false;
 +    if (!S_ISREG(st.st_mode)) return false;
-+    // The xattr tag costs one 4 KiB inode block; real data would allocate >= size/2.
-+    if (st.st_size > 0 && (long long) st.st_blocks * 512 >= st.st_size / 2) return false;
++    // The xattr tag costs at most one 4 KiB block (st_blocks <= 8); any data write allocates >= 16.
++    if (st.st_size > 0 && st.st_blocks > 8) return false;
 +    char sha[80];
 +    off_t tagSize;
-+    if (!readTag(path, sha, sizeof(sha), &tagSize)) return false;
++    if (!readTag(usePath, sha, sizeof(sha), &tagSize)) return false;
 +    if (strlen(sha) != 64 || tagSize != st.st_size) return false;
 +    snprintf(blobPath, blobPathSize, "%s/blobs/%c%c/%s", g_cfg.pool, sha[0], sha[1], sha);
 +    *size = st.st_size;
++    if (resolvedPath && resolvedSize > 0) snprintf(resolvedPath, resolvedSize, "%s", usePath);
 +    return true;
 +}
 +
 +bool removeTag(const char *path) {
-+    return removexattr(path, kTag) == 0;
++    return realRemovexattr(path, kTag) == 0;
 +}
 +
 +}  // namespace dualfs

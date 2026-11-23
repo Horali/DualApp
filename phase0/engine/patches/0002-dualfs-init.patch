@@ -63,12 +63,14 @@ index 1053b7e..f5cbfda 100644
      public static native void hideXposed();
 --- a/Bcore/src/main/java/top/niunaijun/blackbox/app/BActivityThread.java
 +++ b/Bcore/src/main/java/top/niunaijun/blackbox/app/BActivityThread.java
-@@ -404,6 +404,16 @@
+@@ -404,6 +404,18 @@
          assert packageContext != null;
          IOCore.get().enableRedirect(packageContext);
  
 +        try {
-+            File dualFsConfig = new File(BlackBoxCore.getContext().getExternalFilesDir("blackbox"),
++            File hostExtRoot = new File("/storage/emulated/" + BlackBoxCore.getHostUserId()
++                    + "/Android/data/" + BlackBoxCore.getHostPkg() + "/files/blackbox");
++            File dualFsConfig = new File(hostExtRoot,
 +                    "dualfs/inst/" + getUserId() + "/" + packageName + "/config");
 +            if (dualFsConfig.exists()) {
 +                NativeCore.enableDualFs(dualFsConfig.getAbsolutePath());

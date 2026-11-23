@@ -262,8 +262,8 @@ static int is_placeholder(const char *path, char *sha, size_t n, off_t *size) {
     struct stat st;
     if (lstat(path, &st) != 0) return 0;
     if (!S_ISREG(st.st_mode)) return 0;
-    // Allow the one 4 KiB inode block the tag costs; a real write allocates >= size/2.
-    if (st.st_size > 0 && (long long) st.st_blocks * 512 >= st.st_size / 2) return 0;
+    // Allow the one 4 KiB inode block the tag costs (st_blocks <= 8); any real data write allocates >= 16.
+    if (st.st_size > 0 && st.st_blocks > 8) return 0;
     if (read_tag(path, sha, n, size) != 0) return 0;
     return strlen(sha) == 64 && *size == st.st_size;
 }
