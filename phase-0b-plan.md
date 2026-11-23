@@ -905,7 +905,8 @@ Excludes always win over includes. The hard excludes (`login_data` and the ident
 - **`dualfs-tool` self-test passed.** 101/101 harvest, 101/101 `verify-tree`, 101/101 rehydrate; the tree drops from 6,472 KiB to **412 KiB** and returns to 6,472 KiB after rehydrate. The tool runs under `run-as` on the engine UID. It also found the **4 KiB inode block** cost of the xattr tag (see the T3 note).
 - **`dfaudit` self-test passed.** Reading a placeholder produces `OPEN` + `ACCESS` with `placeholder`; creating/modifying private files produces `CREATE`/`OPEN`/`MODIFY`/`CLOSE_WRITE` with `private`. That is the bypass signal T6/T10 needs.
 - **R7 result (2026-11-23, PASS — upstream engine, spoofing on).** Updated the engine via `adb install -r` with `0001+0004+0005+0002+0003` (owner had to approve Samsung Device security's `AppVerificationDialog` separately from Play Protect; clone data untouched at 154M internal / 2.5G external). With no DualFs config, Canary reported `consistent=true` in User 0 (`74d0626c`, run 21) and User 1 (`9180c35e`, run 6), MLBB clone A reached Create Character in ~35 s, and 0 DualFs hooks/crashes appeared (one known T2 `:black` freezer kill recovered cleanly). `/data` free space is 7.1 GB (below T10's >= 8 GB). See `phase0b/results/t5/t5-r7.txt`.
-- **Remaining:** Canary v0.3 attack matrix, PackLoader workloads, M9 spike.
+- **T5 attack matrix + T6 fixes (2026-11-23).** Fixed `0002` guest config lookup (`IStorageManagerProxy` double-redirected `getExternalFilesDir` in `:p0`), updated `0003` with `BlobEntry` placeholder tracking, `/proc/self/fd/N` reopen copy-up, `fchmodat`/`utimensat`/`readlinkat`/6 `*xattr` hooks, `st_blocks > 8` fail-private check, pre-`O_TRUNC` tag removal, and multi-`root=`/`tmp_int=`. Added C1–C22 (`T6Probe.java` + JNI) to Canary v0.3.
+- **Remaining:** PackLoader workloads, M9 spike.
 
 ### T6 Storage conformance suite v2 (2 days)
 
@@ -942,6 +943,8 @@ Excludes always win over includes. The hard excludes (`login_data` and the ident
 | C22 | Force-stop and reboot, then re-check C2–C12 results | Private results persist; placeholders still redirect | unchanged | unchanged |
 
 **Output:** `phase0b/scripts/conformance-v2.sh`, `t6-conformance.txt`
+
+**T6 result (2026-11-23, C1–C21 + force-stop C22 PASS; C22 reboot pending — upstream engine, spoofing on):** All 15/15 DualFs Dobby hooks installed `OK`; `C1`–`C21` (Java + JNI, external FUSE + internal f2fs), User 1 `VERIFY_U1` (39/39), and `C22_CHECK` after force-stop passed (`FAILS=0`, 0 crashes). Pool 1 MiB / 64 MiB hashes, modes (`0444`), and mtimes stayed untouched after every case; User 1 remained 39/39 good; `dfaudit` detected raw-syscall `C18` (`ACCESS`) and `C19` (`MODIFY`) with 0 false alarms elsewhere. Kernel limits read via root daemon: `max_user_watches=72456`, `max_user_instances=128`. C22 reboot half awaits owner approval. See `phase0b/results/t6/t6-conformance.txt`.
 
 ### T7 Crash and recovery (1.5 days)
 

@@ -1,0 +1,63 @@
+# T6 Storage Conformance Suite v2 (C1-C22)
+
+Date: 2026-11-23. Device: SM-S936B (`RRCY1032Y6F`), Android 17 / API 37, One UI 9.0.
+Label: **upstream engine, spoofing on**.
+Patches: `0001` + `0004` + `0005` + `0002` + `0003` (DualFs v2).
+Script: `phase0b/scripts/conformance-v2.sh` (`FAILS=0`, 0 crashes, 0 ANRs).
+
+## Setup & pool
+
+- Pool root: `/storage/emulated/0/Android/data/top.niunaijun.blackbox/files/blackbox/dualfs/pool/dev.dualapp.canary`
+- 1 MiB blob (`0444`, mtime `1795444671`): SHA-256 `2d650a7cc17e9197c5b3768b3d8c732fbdd92d5b6a6df224a5c5ca4646aac05a` (first 1000 bytes SHA-256 `e332353c6116a440d0cb1b147d8d04cbcb92ee4c2ed33d0856282643d33df4cc`)
+- 64 MiB blob (`0444`, mtime `1795444671`): SHA-256 `7b58dd5b178bac9665896e42a1d2b1f36c8c6b887a6b33823704a10e228beb0d`
+- Seeded trees: User 0 `ext` (`files/t6`), User 0 `int` (`files/t6`), User 1 `ext` (`files/t6`), User 1 `int` (`files/t6`) — **39/39 placeholders (`good=39 bad=0`)** per tree (38 × 1 MiB + 1 × 64 MiB).
+- Kernel inotify limits (read-only check via root daemon, closing T3 SELinux unknown): `max_user_watches=72456`, `max_user_instances=128`.
+
+## DualFs hook installation (Canary User 0, `top.niunaijun.blackbox:p0`)
+
+All **15 / 15** Dobby hooks installed with `OK` on Android 17 BTI/PAC `libc.so`:
+`open`, `openat`, `__openat`, `fchmod`, `chmod`, `fchmodat`, `truncate`, `utimensat`, `setxattr`, `lsetxattr`, `fsetxattr`, `removexattr`, `lremovexattr`, `fremovexattr`, `readlinkat`.
+
+## Conformance matrix (C1-C22)
+
+| # | EXT JAVA | EXT JNI | INT JAVA | INT JNI | Pool (1M & 64M hash/mode/mtime) | User 1 (`verify-tree`) | `dfaudit` (`placeholder` bypass) |
+|---|---|---|---|---|---|---|---|
+| C1 | PASS (`s1=true map=true s64=true`) | PASS (`read=OK fread=OK mmap=OK`) | PASS | PASS | unchanged | 39/39 good | 0 bypasses |
+| C2 | PASS (`len=1048592 tag=false`) | PASS (`size=1048592 tag=0`) | PASS | PASS | unchanged | 39/39 good | 0 bypasses (copy-up `MOVED_TO private`) |
+| C3 | PASS (`len=1048592 tag=false`) | PASS (`chmod=0 size=1048592`) | PASS | PASS | unchanged | 39/39 good | 0 bypasses (copy-up `MOVED_TO private`) |
+| C4 | PASS (`phBefore=true len=1048576`) | PASS (`fr=0 phBefore=1 reopen=1 w=16`) | PASS | PASS | unchanged | 39/39 good | 0 bypasses (reopen copied up `private`) |
+| C5 | PASS (`mode=666 ph=true`) | PASS (`r=0 mode=666 ph=1`) | PASS | PASS | unchanged | 39/39 good | 0 bypasses |
+| C6 | PASS (`len=32 tag=false`) | PASS (`size=32 tag=0`) | PASS | PASS | unchanged | 39/39 good | 0 bypasses (`OPEN`/`MODIFY private`) |
+| C7 | PASS (`len=1000`) | PASS (`r=0 size=1000 sha_ok=1`) | PASS | PASS | unchanged | 39/39 good | 0 bypasses |
+| C8 | PASS (`errno=22(EINVAL)`) | PASS (`r=-1 errno=22 ph=1`) | PASS | PASS | unchanged | 39/39 good | 0 bypasses |
+| C9 | PASS (`len=1048576`) | PASS (`size=1048576 mid=PATCH_C9_MIDDLE!`) | PASS | PASS | unchanged | 39/39 good | 0 bypasses |
+| C10 | PASS (`del=true`) | PASS (`unlink=0`) | PASS | PASS | unchanged | 39/39 good | 0 bypasses |
+| C11 | PASS (`ren=true ph=true`) | PASS (`rename=0 ph=1 sha_ok=1`) | PASS | PASS | unchanged | 39/39 good | 0 bypasses |
+| C12 | PASS (`ren=true len=16`) | PASS (`rename=0 got=PRIVATE_C12_JNI_`) | PASS | PASS | unchanged | 39/39 good | 0 bypasses |
+| C13 | PASS (`set=true mtime=1700000555`) | PASS (`path=0(1700000000) fd=0(1700000123)`) | PASS | PASS | unchanged | 39/39 good | 0 bypasses |
+| C14 | PASS (`e1=95 got=java_ok`) | PASS (`e1=95 e2=95 r3=0 r4=0`) | PASS | PASS | unchanged | 39/39 good | 0 bypasses |
+| C15 | PASS (`sharedDenied=true privHandled=true`) | PASS (`shared=EACCES(13) priv=1 sha_ok=1`) | PASS | PASS | unchanged | 39/39 good | 0 bypasses |
+| C16 | PASS (exact ext placeholder path) | PASS (`match=1`) | PASS (exact int placeholder path) | PASS (`match=1`) | unchanged | 39/39 good | 0 bypasses |
+| C17 | PASS (`errno=13(EACCES)`) | PASS (`r=-1 errno=13`) | PASS | PASS | unchanged | 39/39 good | 0 bypasses |
+| C18 | PASS (`raw open OK n=16 hex=00...`) | PASS (`n=64 allZero=1 ph=1`) | PASS | PASS | unchanged | 39/39 good | **Detected**: `OPEN` + `ACCESS` on `c18.bin placeholder` (ext + int) |
+| C19 | PASS (delegated) | PASS (`w=16 blocks=16 ph=0`) | PASS | PASS | unchanged | 39/39 good | **Detected**: `OPEN` + `MODIFY` + `CLOSE_WRITE` on `c19.bin placeholder` (ext + int); file became fail-private (`blocks=16`) |
+| C20 | PASS (delegated) | PASS (`symlink=13 EACCES on FUSE`) | PASS (delegated) | PASS (`nofollow_e=40 ELOOP follow_sha=1`) | unchanged | 39/39 good | 0 bypasses |
+| C21 | PASS (`listed=true len=1048576 mtime=1795444671`) | PASS (`listed=1 size=1048576 mtime=1795444671`) | PASS | PASS | unchanged | 39/39 good | 0 bypasses |
+| U1 check | — | PASS (`checked=39 bad=0`) | — | PASS (`checked=39 bad=0`) | unchanged | 39/39 good | — |
+| C22 (force-stop) | PASS | PASS | PASS | PASS | unchanged | 39/39 good | — |
+
+## Bugs found and fixed while bringing up T6
+
+1. **Patch `0002` guest config path lookup (`BActivityThread.java`):** `IStorageManagerProxy.GetVolumeList` is already active in guest processes (`:p0`), so `BlackBoxCore.getContext().getExternalFilesDir("blackbox")` returned a double-nested path under `storage/emulated/0/`. Fixed `BActivityThread` to check `/storage/emulated/<hostUserId>/Android/data/<hostPkg>/files/blackbox/dualfs/inst/<user>/<pkg>/config` directly.
+2. **Patch `0003` CoW + guard surface (`dualfs/`):**
+   - `BlobEntry` now records both `blob` and `ph` (placeholder path) so `fchmod`, `chmod("/proc/self/fd/N")`, `fsetxattr`, `futimens`, and `readlinkat` act on the placeholder rather than the pool blob.
+   - `do_open` resolves `/proc/self/fd/N` and `/proc/<pid>/fd/N` back to the placeholder so write reopens (C4) trigger `copyUp`.
+   - Added `fchmodat`, `utimensat` (`futimens`), `readlinkat` (`readlink`), and all 6 `*xattr` hooks (refusing `user.dualapp.*` with `ENOTSUP`), plus a `thread_local` re-entry guard and `errno` preservation.
+   - Changed fail-private threshold in `Placeholder.cpp` and `dualfs-tool.c` from `st_blocks * 512 >= st_size / 2` to `st_blocks > 8` so small raw writes (C19) immediately mark the file fail-private.
+   - Removed xattr tag before `realOpen`/`realTruncate` on `O_TRUNC` / `truncate(..., 0)` so `dfaudit` never sees `IN_MODIFY` on a `placeholder`.
+   - Added multi-`root=` support and `tmp_int=` (internal temp dir) so copy-up `rename` stays on the same filesystem on both internal (`f2fs`) and external (`FUSE`).
+3. **Android Java `FileChannel.map(PRIVATE)` behavior (C15 Java):** `FileChannelImpl.map(MapMode.PRIVATE)` on a read-only `RandomAccessFile(f, "r")` throws `NonWritableChannelException` in Java before reaching `mmap`. Updated `T6Probe` Java C15 to accept `NonWritableChannelException` for `MapMode.PRIVATE` while testing `READ_ONLY` map on the blob handle (JNI C15 tests raw `mmap(PROT_WRITE, MAP_SHARED)` -> `EACCES` and `mmap(MAP_READ|PROT_WRITE, MAP_PRIVATE)` -> memory-only write).
+
+## Remaining for T6 pass gate
+
+- **C22 phone reboot half:** Force-stop persistence passed; full phone reboot + `C22_CHECK` awaits owner approval to reboot.
