@@ -111,33 +111,32 @@ The clone engine is **NewBlackbox** (open source, upstream commit `89b5983`). It
    - Inotify watcher; prints `<time> <masks> <path> <placeholder|private>`.
    - Reading a placeholder shows `OPEN` + `ACCESS` with `placeholder` (the bypass signal); private files show `CREATE`/`OPEN`/`MODIFY`/`CLOSE_WRITE` with `private`.
 
-**Pending (the current stop point):**
+**Done (2026-11-23):**
 
-- The engine APK with **0001 + 0004 + 0005 + 0002 + 0003** is built:
-  - `phase0/engine/NewBlackbox/app/build/outputs/apk/debug/BlackBox_4.0.0_arm64-v8a-debug.apk` (9.55 MB)
-  - SHA-256 `f3079e6a2cd4eae217c97c0b0c59dd68ebfec0308cca9187701d216083767fc3`
-  - **It has NOT been installed.** The session ended by asking the owner for approval to install it. **The new session must ask before installing.**
-- After installing, run **R7**: with no DualFs config, nothing changes — Canary in Users 0 and 1 reports `consistent=true`, and MLBB A still reaches Create Character.
-- Remaining T5 work after R7: **Canary v0.3 attack matrix** (T6 cases C1–C22), **PackLoader workloads** (T9), **M9 spike** (PoolHost), then T6–T13.
+- **Engine update installed (`0001 + 0004 + 0005 + 0002 + 0003`) & R7 PASS** (`phase0b/results/t5/t5-r7.txt`, **upstream engine, spoofing on**):
+  - APK SHA-256 `f3079e6a2cd4eae217c97c0b0c59dd68ebfec0308cca9187701d216083767fc3` (`adb install -r`, data intact: 154M internal / 2.5G external, uid 10057).
+  - **Install note:** Play Protect returned `VERIFICATION_ALLOW`, while **Samsung Device security / App Protection** (`com.samsung.android.sm.devicesecurity` / `lool` `AppVerificationDialog`) separately prompts and must be approved by the owner on every engine install.
+  - With no DualFs config, Canary reported `consistent=true` in User 0 (`74d0626c`, run 21) and User 1 (`9180c35e`, run 6), MLBB clone A reached Create Character (~35 s), and DualFs stayed dormant (0 crashes, 0 DualFs lines; 1 known `:black` freezer kill recovered).
+
+**Pending:**
+
+- Remaining T5 work: **Canary v0.3 attack matrix** (T6 cases C1–C22), **PackLoader workloads** (T9), **M9 spike** (PoolHost), then T6–T13.
 
 **Phone state on 2026-11-23:**
 
-- Engine on the phone is still **0001 + 0004 + 0005** (DualFs not installed).
+- Engine on the phone is now **0001 + 0004 + 0005 + 0002 + 0003** (DualFs built-in, dormant with no config).
+- Free space on `/data`: **7.1 GB** (7.3 GB pre-install) — above the 4 GB stop line, **below the ≥ 8 GB T10 needs** (must free space before T10).
 - Installed test apps: **Canary v0.3** (normal + clones in engine Users 0/1) and **PackLoader v0.1** (normal app, no data).
-- MLBB clone A is in engine **User 0**, now ~2.4 GB after the T4 4-minute run. The real MLBB, Instagram and Secure Folder were only read; never changed.
+- MLBB clone A is in engine **User 0**, ~2.5 GB external blackbox tree. The real MLBB, Instagram and Secure Folder were only read; never changed.
 - The phone may be locked. The owner unlocks it when a task needs input.
 
 ## What to do next (in order)
 
-1. **Ask the owner to approve the engine update** (0001–0003, `adb install -r`, keeps all clone data). Play Protect may ask the owner to allow it, as before.
-2. Install, launch the engine, confirm the clones still list; run **R7**:
-   - Canary in Users 0 and 1: `consistent=true`, no crash.
-   - MLBB A: reaches Create Character.
-   - No DualFs config exists yet, so the engine must behave exactly as before.
-3. **T5 attack matrix / T6:** add the C1–C22 cases to Canary v0.3 (Java + JNI), seed placeholders into Canary's trees in Users 0/1 (internal and external), run the matrix, record pool hash and User 1 view after every case.
-4. **T5 PackLoader workloads / T9:** generate the 1.5 GiB deterministic pack, the simulated downloader, the three index modes, and W1–W5; run the DualFs on/off benchmarks.
-5. **T5 M9 spike:** PoolHost app owns a 256 MiB blob; measure `ContentProvider.openFile` vs `SCM_RIGHTS`, `fchmod` → `EPERM`, reopen → `EACCES`.
-6. Then **T6–T13** per the plan. Record each task's text results under `phase0b/results/<task>/` and add a short "T<n> result" note under that task in `phase-0b-plan.md`.
+1. ~~Engine update & R7~~ — **DONE (2026-11-23, PASS)**.
+2. **T5 attack matrix / T6:** add the C1–C22 cases to Canary v0.3 (Java + JNI), seed placeholders into Canary's trees in Users 0/1 (internal and external), run the matrix, record pool hash and User 1 view after every case.
+3. **T5 PackLoader workloads / T9:** generate the 1.5 GiB deterministic pack, the simulated downloader, the three index modes, and W1–W5; run the DualFs on/off benchmarks.
+4. **T5 M9 spike:** PoolHost app owns a 256 MiB blob; measure `ContentProvider.openFile` vs `SCM_RIGHTS`, `fchmod` → `EPERM`, reopen → `EACCES`.
+5. Then **T6–T13** per the plan. Record each task's text results under `phase0b/results/<task>/` and add a short "T<n> result" note under that task in `phase-0b-plan.md`.
 
 ## Read in this order
 

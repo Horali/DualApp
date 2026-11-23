@@ -1,0 +1,44 @@
+# T5 R7 regression check (engine update 0001-0005 + DualFs)
+
+Date: 2026-11-23. Device: SM-S936B (`RRCY1032Y6F`), Android 17 / API 37, One UI 9.0.
+Label: **upstream engine, spoofing on**.
+
+## Build & install metadata
+
+- APK: `phase0/engine/NewBlackbox/app/build/outputs/apk/debug/BlackBox_4.0.0_arm64-v8a-debug.apk`
+- APK SHA-256: `f3079e6a2cd4eae217c97c0b0c59dd68ebfec0308cca9187701d216083767fc3`
+- Patches applied: `0001` + `0004` + `0005` + `0002` + `0003` (DualFs native + Java init)
+- APK verification: `lib/arm64-v8a/libblackbox.so` contains `enableDualFs`
+- DualFs config on device (`/storage/emulated/0/Android/data/top.niunaijun.blackbox/files/blackbox/dualfs`): **absent** (`No such file or directory`)
+
+## Install behavior (Samsung App Protection)
+
+- Play Protect (`com.android.vending`) returned `VERIFICATION_ALLOW` (disabled by user setting).
+- **Samsung Device security / App Protection** (`com.samsung.android.sm.devicesecurity` / `com.samsung.android.lool` `AppVerificationDialog`) separately prompts on `adb install -r` and must be approved by the owner on every engine install.
+- Attempts 1 and 2 failed with `INSTALL_FAILED_VERIFICATION_FAILURE` when the dialog was closed / rejected (`verifyPendingInstall vid: 7, vcode: -1, callingUid: 10237`). Attempt 3 succeeded (`Success`) after the owner allowed it on the phone.
+
+## Before vs. after update (`adb install -r`)
+
+| Metric | Before | After |
+|---|---|---|
+| `versionCode` | 400 | 400 |
+| `uid` / `appId` | 10057 / 10057 | 10057 / 10057 |
+| `lastUpdateTime` | `2026-11-13 14:26:31` | `2026-11-23 00:23:21` |
+| Internal data (`/data/user/0/top.niunaijun.blackbox`) | 154M (`files/` 75K) | 154M (`files/` 75K) |
+| External blackbox (`/storage/.../files/blackbox`) | 2.5G | 2.5G |
+| Clone list | User 0: Canary, MLBB; User 1: Canary | User 0: Canary, MLBB; User 1: Canary |
+| `/data` free space | 7.3G (97% used; 6.6G at session start) | 7.1G (97% used) |
+
+## R7 checks (no DualFs config = no change)
+
+| Check | Result | Details |
+|---|---|---|
+| Canary User 0 | **PASS** | `SUMMARY id=74d0626c run=21 consistent=true prefs=20 db=20 int=20 ext=20` (`pid=28385 uid=10001`) |
+| Canary User 1 | **PASS** | `SUMMARY id=9180c35e run=6 consistent=true prefs=5 db=5 int=5 ext=5` (`pid=28607 uid=10001`) |
+| MLBB clone A (User 0) | **PASS** | `com.mobile.legends` + `:UnityKillsMe` ran cleanly; reached **Create Character** screen in ~35 s |
+| Crash / DualFs logcat grep | **PASS** | 0 `FATAL EXCEPTION`, 0 `SIGSEGV`/`SIGILL`, 0 ANRs, 0 `DualFs`/`dualfs` init lines; 1 known T2 `:black` freezer kill (`Sync transaction while frozen`, pid 27531) during User 1 check with clean recovery |
+
+## Verdict
+
+- **PASS** per Section 7 criteria: Canary reports `consistent=true` in Users 0 and 1, MLBB clone A reaches Create Character with no regression, and DualFs stays dormant when unconfigured.
+- **Note on free space:** `/data` has **7.1 GB free** (below the **>= 8 GB** needed for T10). Free space will need to be cleared before T10.

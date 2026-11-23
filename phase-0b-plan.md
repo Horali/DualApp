@@ -904,7 +904,8 @@ Excludes always win over includes. The hard excludes (`login_data` and the ident
 - **Patches 0002 and 0003 written.** 0002 adds `NativeCore.enableDualFs` and the call in `BActivityThread.handleBindApplication`; 0003 adds `Bcore/src/main/cpp/dualfs/` (config, placeholder/xattr tag, copy-up, hooks). The engine builds, and **0001+0004+0005+0002+0003 apply cleanly to a fresh `89b5983`**.
 - **`dualfs-tool` self-test passed.** 101/101 harvest, 101/101 `verify-tree`, 101/101 rehydrate; the tree drops from 6,472 KiB to **412 KiB** and returns to 6,472 KiB after rehydrate. The tool runs under `run-as` on the engine UID. It also found the **4 KiB inode block** cost of the xattr tag (see the T3 note).
 - **`dfaudit` self-test passed.** Reading a placeholder produces `OPEN` + `ACCESS` with `placeholder`; creating/modifying private files produces `CREATE`/`OPEN`/`MODIFY`/`CLOSE_WRITE` with `private`. That is the bypass signal T6/T10 needs.
-- **Remaining:** Canary v0.3 attack matrix, PackLoader workloads, M9 spike, engine update (needs approval) and R7.
+- **R7 result (2026-11-23, PASS — upstream engine, spoofing on).** Updated the engine via `adb install -r` with `0001+0004+0005+0002+0003` (owner had to approve Samsung Device security's `AppVerificationDialog` separately from Play Protect; clone data untouched at 154M internal / 2.5G external). With no DualFs config, Canary reported `consistent=true` in User 0 (`74d0626c`, run 21) and User 1 (`9180c35e`, run 6), MLBB clone A reached Create Character in ~35 s, and 0 DualFs hooks/crashes appeared (one known T2 `:black` freezer kill recovered cleanly). `/data` free space is 7.1 GB (below T10's >= 8 GB). See `phase0b/results/t5/t5-r7.txt`.
+- **Remaining:** Canary v0.3 attack matrix, PackLoader workloads, M9 spike.
 
 ### T6 Storage conformance suite v2 (2 days)
 
