@@ -122,11 +122,15 @@ public class MainActivity extends Activity {
         setContentView(ll);
     }
 
-    /** Test hook: pressing E opens the env page without touching the button. */
+    /** Test hook: pressing E opens the env page; pressing C runs the T6 conformance case. */
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         if (keyCode == KeyEvent.KEYCODE_E) {
             startActivity(new Intent(this, EnvActivity.class));
+            return true;
+        }
+        if (keyCode == KeyEvent.KEYCODE_C) {
+            new Thread(() -> T6Probe.runFromFiles(getFilesDir(), getExternalFilesDir(null))).start();
             return true;
         }
         return super.onKeyDown(keyCode, event);

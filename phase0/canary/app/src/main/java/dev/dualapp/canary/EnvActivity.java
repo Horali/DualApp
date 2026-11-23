@@ -64,6 +64,10 @@ public class EnvActivity extends Activity {
             show();
         });
 
+        Button t6 = new Button(this);
+        t6.setText("Run T6 conformance");
+        t6.setOnClickListener(v -> runT6Async());
+
         LinearLayout ll = new LinearLayout(this);
         ll.setOrientation(LinearLayout.VERTICAL);
         // targetSdk 35 draws edge-to-edge: keep the buttons above the navigation bar.
@@ -74,13 +78,25 @@ public class EnvActivity extends Activity {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         ll.addView(esc, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        ll.addView(t6, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         setContentView(ll);
 
         runEnv();
         show();
     }
 
-    /** Test hook: pressing X runs the T2 step 3 escape test without the button. */
+    private void runT6Async() {
+        new Thread(() -> {
+            String r = T6Probe.runFromFiles(getFilesDir(), getExternalFilesDir(null));
+            runOnUiThread(() -> {
+                sb.append(r);
+                show();
+            });
+        }).start();
+    }
+
+    /** Test hook: pressing X runs escape test, T runs T3 probe, C runs T6 conformance. */
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         if (keyCode == KeyEvent.KEYCODE_X) {
@@ -91,6 +107,10 @@ public class EnvActivity extends Activity {
         if (keyCode == KeyEvent.KEYCODE_T) {
             T3Probe.run(new File(getFilesDir(), "t3probe"),
                     new File(getExternalFilesDir(null), "t3probe"));
+            return true;
+        }
+        if (keyCode == KeyEvent.KEYCODE_C) {
+            runT6Async();
             return true;
         }
         return super.onKeyDown(keyCode, event);

@@ -41,4 +41,8 @@ public final class EnvProbe {
 
     /** T3 step 8: inotify on a guest folder. */
     public static native String inotifyTest(String dir);
+
+    /** T6 conformance suite: run one case (or C22_CHECK / VERIFY_U1) from JNI/libc. */
+    public static native String t6Jni(String caseId, String dir, String sha1m, String sha64m,
+                                      String sha1000, long c21Mtime);
 }
