@@ -869,6 +869,7 @@ Excludes always win over includes. The hard excludes (`login_data` and the ident
 - **N3:** the APK payloads are **misspelled** `assets/Resouces4-1..4.dat` and `lib/arm64-v8a/libResouces_z*.so` (ELF). No file with those names is in either tree; the output is renamed/repacked into bundles that are identical and not ELF, so shareable. The `libResouces_z*.so` are private.
 - **Draft profile:** `mlbb-sharing-profile.json` includes `files/dragon2017/assets/**` and hard-excludes login data, identity files, metadata, `comlibs`, `LuaServerUpdate`, caches and ELF/dex/zip content.
 - **T4 pass:** every absolute path is listed with file/key/value; login and identity files are located and covered by hard excludes; the unpack payloads are located and classified.
+- **Host internal supplement (2026-11-23, read-only root recon, [`t4-host-internal-supplement.txt`](phase0b/results/t4/t4-host-internal-supplement.txt)):** confirmed `.DNA_`, `.DNA_FLAG`, `.gp_uuid`, `INSTALLATION`, `AdjustAttribution`, `com.ss.android.deviceregister.utils.Cdid.xml`, and `com.dvi.internal.xml` exist on the full logged-in host install (all internal); host vs Clone A hashes for `__app_uuid__`, `snssdk_openudid.xml`, `DeviceSettings.xml`, and PlayerPrefs all differ; confirmed external `assets/_finish` is a 0-byte completion marker and `PatchFileList*.xml` exist on host. Add `*Cdid*.xml` and `com.dvi.internal.xml` to `dualfs-tool` and profile hard excludes.
 
 ### T5 Build the M8 prototype (5–7 days)
 

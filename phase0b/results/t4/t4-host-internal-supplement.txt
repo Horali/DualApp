@@ -1,0 +1,54 @@
+# T4 Host MLBB Internal Supplement (Read-Only Root Recon)
+
+Date: 2026-11-23. Device: Samsung SM-S936B (`RRCY1032Y6F`), Android 17 / API 37, One UI 9.0.
+Method: Read-only directory/stat/SHA-256 inspection via owner's Termux `DirtyFrag` root daemon (`/sdcard/cmd.sh` -> `/sdcard/cmd.out`, `uid=0`, `context=u:r:ksu:s0`).
+Privacy/safety: **File contents were never read or logged** (names, sizes, modes, timestamps, and SHA-256 hashes only). Host MLBB was never modified.
+
+## 1. Host MLBB vs Clone A Footprint
+
+| Tree | Total | Breakdown |
+|---|---:|---|
+| Host internal (`/data/data/com.mobile.legends`) | **202 MB** | `app_libs/` 167M, `files/` 16M, `cache/` 12M, `no_backup/` 4.4M, `shared_prefs/` 1.6M, `app_webview_...` 569K, `databases/` 244K |
+| Host external (`/data/media/0/Android/data/com.mobile.legends`) | **12 GB** | `files/dragon2017/assets` |
+| Clone A internal (`.../blackbox/data/user/0/com.mobile.legends`) | **153 MB** | `app_libs/` 151M, `files/` 1.5M, `databases/` 332K, `shared_prefs/` 160K, `no_backup/` 156K, `cache/` 42K |
+| Clone A external (`.../blackbox/storage/emulated/0/Android/data/...`) | **2.7 GB** | Partial assets + Phase 0 `img/` copy |
+
+## 2. Host Internal Identity Files (N6 Confirmation)
+
+Previously unreadable without root (and absent on unlogged-in Clone A), confirming N6:
+
+| Path under `/data/data/com.mobile.legends/` | Size | Mode | Host SHA-256 | Notes |
+|---|---:|---|---|---|
+| `files/.DNA_` | 72 B | `0600` | — | Per-install device DNA token |
+| `files/.DNA_FLAG` | 0 B | `0600` | — | DNA marker flag |
+| `files/.gp_uuid` | 76 B | `0600` | — | Google Play UUID |
+| `files/INSTALLATION` | 36 B | `0600` | `461f19ae26d20cfa2af6935fb212e7d271842da9ca346e558b04b5d1b5202993` | Firebase/Install UUID |
+| `files/AdjustAttribution` | 473 B | `0660` | — | Adjust attribution state |
+| `shared_prefs/com.ss.android.deviceregister.utils.Cdid.xml` | 140 B | `0660` | `277a73a40e40a08bd102286c1476dfd6ba9da13a016208003a77b21826cb8788` | Full prefixed filename (not bare `Cdid.xml`) |
+| `shared_prefs/com.dvi.internal.xml` | 33 B | `0600` | — | Device identifier XML |
+
+Absent inside `files/`: `AdjustIo`, `IphonePath`, `__SDKOverrideAssetsPath__`, `_finish`, `Dragon2017` (all absent from internal `files/`).
+
+## 3. Host vs Clone A SHA-256 Identity Comparison
+
+All identity files present on both installs have **distinct hashes**, confirming fresh clones generate their own per-install identity tokens (separate from the shared `ANDROID_ID` issue):
+
+| File (under package data root) | Host SHA-256 | Clone A (User 0) SHA-256 | Match? |
+|---|---|---|---|
+| `files/__app_uuid__` | `b3a191c551875c013e4f450b77982f9bc3cfb12f9a69753a0c70148f2d4d67f3` | `77e7007a1e61b31e6d6ce06b1ca85e32ff57d4e06a2758936d74f9301c6e81ec` | **DIFFERENT** |
+| `shared_prefs/snssdk_openudid.xml` | `556e678c639b33f79280a9e230163db10e293cb0132b64e29eee2f8df5a36ada` | `2ac3dd898626d1643af7c63e14c89a8fc7d74433b87dbfb2eae29055696c1af8` | **DIFFERENT** |
+| `shared_prefs/DeviceSettings.xml` | `35c0775a320fd03b4d8c15a697aee68b5f5f3afcd4a1b4f45e9d32cea36513c9` | `a78f82955c9b5ebd7e152b2e34603b282966dc890f2a34e3d3d69f97de381017` | **DIFFERENT** |
+| `shared_prefs/com.mobile.legends.v2.playerprefs.xml` | `27c9d303891e91c1abacab2e6621275e2f6727a457193c5289c99d42a5c038d0` | `90be3502d2e573677a00c97ec135adc6d3cbd8fe128a64eb4aefd5716a38b083` | **DIFFERENT** |
+| `files/INSTALLATION` | `461f19ae26d20cfa2af6935fb212e7d271842da9ca346e558b04b5d1b5202993` | `NONE` | Host only |
+| `shared_prefs/com.ss.android.deviceregister.utils.Cdid.xml` | `277a73a40e40a08bd102286c1476dfd6ba9da13a016208003a77b21826cb8788` | `NONE` | Host only |
+
+## 4. Host External Completion & Patch Manifest Markers
+
+- `files/dragon2017/assets/_finish`: **present on host** (`0` bytes, empty marker file, `2026-10-29`), **absent on Clone A**. Confirms T4 hypothesis that `_finish` marks completed asset download.
+- `files/dragon2017/assets/PatchFileList.xml` (`21,064` B) and `PatchFileList_SDK.xml` (`10,969` B): **present on host**, **absent on incomplete Clone A**.
+
+## 5. Required Hard-Exclude Updates
+
+Update `mlbb-sharing-profile.json` and `phase0b/tools/dualfs-tool/dualfs-tool.c` hard excludes before T10 to cover:
+- `*Cdid*.xml` (for `com.ss.android.deviceregister.utils.Cdid.xml`, since `strcmp(base, "Cdid.xml")` alone would miss the prefixed filename)
+- `com.dvi.internal.xml`
